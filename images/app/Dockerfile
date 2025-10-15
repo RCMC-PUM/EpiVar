@@ -55,6 +55,7 @@ EXPOSE 8000
 RUN mkdir -p /var/www/staticfiles/logos && chown -R appuser:appuser /var/www/staticfiles
 RUN mkdir -p /opt/mediafiles && chown -R appuser:appuser /opt/mediafiles
 RUN mkdir -p /tmp/hf/cache/ && chown -R appuser:appuser /tmp/hf/cache/
+RUN chown -R appuser:appuser /app/epivar/
 
 # Change user
 USER appuser
