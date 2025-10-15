@@ -6,6 +6,27 @@ __pycache__/
 # C extensions
 *.so
 
+# data
+data/
+static/
+exemplary_data/
+gene_sets_dir/
+*.bed
+*.bedpe
+*.bed.gz
+*.bedpe.gz
+
+# notebooks
+notebooks/
+*.ipynb
+
+# IDE
+.idea/
+
+# secrets
+secrets/
+.env
+
 # Distribution / packaging
 .Python
 build/

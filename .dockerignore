@@ -1,0 +1,81 @@
+# ==========================
+# data
+# ==========================
+data/
+static/
+exemplary_data/
+gene_sets_dir/
+*.bed
+*.bedpe
+*.bed.gz
+*.bedpe.gz
+
+# ==========================
+# notebooks
+# ==========================
+notebooks/
+*.ipynb
+
+
+# ==========================
+# OS / Editor junk
+# ==========================
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.idea/
+
+# ==========================
+# Python
+# ==========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.egg-info/
+*.egg
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+ENV/
+
+# ==========================
+# Django / Local files
+# ==========================
+/static/
+/media/
+/data/
+/logs/
+
+# ==========================
+# Testing
+# ==========================
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+.mypy_cache/
+
+# ==========================
+# Git
+# ==========================
+.git/
+.gitignore
+
+# ==========================
+# Docker / Compose
+# ==========================
+.dockerignore
+docker-compose*.yml
+
+# ==========================
+# Environment
+# ==========================
+.env
+.env.*
