@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<script src="https://cdn.plot.ly/plotly-3.1.0.min.js"></script>
+<style>
+  .datatable td {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+  .datatable td:hover {
+    white-space: normal;
+    overflow: visible;
+    background-color: #f8f9fa;
+    position: relative;
+    z-index: 10;
+  }
+</style>
+
+<div class="container-fluid my-4">
+    <h2 class="mb-4 text-center">GSEA Results: {{ gsea.title }}</h2>
+
+    <!-- Error Handling -->
+    {% if gsea.task.status == "FAILURE" %}
+    <div class="alert alert-danger">
+        <h5>Task Failed</h5>
+        <pre class="bg-light p-3 rounded" style="max-height:400px;overflow-y:auto;white-space:pre-wrap;">
+            {{ gsea.task.traceback }}
+        </pre>
+        <p><b>Task ID:</b> {{ gsea.task.task_id }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Metadata -->
+    {% if metadata %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light"><h4 class="mb-0">{{ gsea.title }}</h4></div>
+        <div class="card-body text-sm">
+            <div class="accordion" id="metadataAccordion">
+
+                <!-- General -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingGeneral">
+                        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseGeneral">
+                            General Information
+                        </button>
+                    </h2>
+                    <div id="collapseGeneral" class="accordion-collapse collapse" data-bs-parent="#metadataAccordion">
+                        <div class="accordion-body">
+                            <p><b>Analysis title:</b> {{ gsea.title }}</p>
+                            <p><b>Creation Date:</b> {{ metadata.creation_date }}</p>
+                            <p><b>Submitter:</b> {{ gsea.submitter }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parameters -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingParams">
+                        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseParams">
+                            Parameters
+                        </button>
+                    </h2>
+                    <div id="collapseParams" class="accordion-collapse collapse" data-bs-parent="#metadataAccordion">
+                        <div class="accordion-body row g-3">
+                            <div class="col-md-4"><b>Input type:</b> {{ gsea.input_type }}</div>
+                            <div class="col-md-4"><b>Reference genome:</b>
+                                <a href="{% url 'reference-genome-detail' gsea.reference_genome.pk %}">
+                                    {{ gsea.reference_genome }}
+                                </a>
+                            </div>
+                            <div class="col-md-4"><b>Universe:</b> {{ gsea.universe_type|default:"ALL" }}</div>
+                            <div class="col-md-4"><b>Max distance:</b> {{ gsea.max_absolute_distance }}</div>
+                            <div class="col-md-4"><b>Same Strandedness:</b> {{ gsea.require_same_strandedness }}</div>
+                            <div class="col-md-4"><b>N closest genes:</b> {{ gsea.n_closest }}</div>
+                            <div class="col-md-4"><b>Significance:</b> {{ gsea.significance_level }}</div>
+                            <div class="col-md-4"><b>Correction:</b> {{ gsea.correction_method }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Intersection Stats -->
+                {% if intersection_stats %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingStats">
+                        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseStats">
+                            Intersection Check
+                        </button>
+                    </h2>
+                    <div id="collapseStats" class="accordion-collapse collapse" data-bs-parent="#metadataAccordion">
+                        <div class="accordion-body table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Foreground total</td><td>{{ intersection_stats.foreground_total }}</td></tr>
+                                    <tr><td>Foreground intersection</td><td>{{ intersection_stats.foreground_intersection }}</td></tr>
+                                    <tr><td>Foreground fraction</td><td>{{ intersection_stats.foreground_fraction|floatformat:3 }}</td></tr>
+                                    {% if intersection_stats.background_total %}
+                                    <tr><td>Background total</td><td>{{ intersection_stats.background_total }}</td></tr>
+                                    <tr><td>Background intersection</td><td>{{ intersection_stats.background_intersection }}</td></tr>
+                                    <tr><td>Background fraction</td><td>{{ intersection_stats.background_fraction|floatformat:3 }}</td></tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Files -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingFiles">
+                        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFiles">
+                            Input & Annotated Files
+                        </button>
+                    </h2>
+                    <div id="collapseFiles" class="accordion-collapse collapse" data-bs-parent="#metadataAccordion">
+                        <div class="accordion-body row g-3">
+
+                            <div class="col-md-6 d-flex justify-content-between">
+                                <b>Foreground:</b>
+                                {% if metadata.foreground %}
+                                    <a href="{{ metadata.foreground.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                                        <i class="bi bi-download"></i> Download
+                                    </a>
+                                {% else %}<span class="text-muted">Not provided</span>{% endif %}
+                            </div>
+
+                            <div class="col-md-6 d-flex justify-content-between">
+                                <b>Background:</b>
+                                {% if metadata.background %}
+                                    <a href="{{ metadata.background.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                                        <i class="bi bi-download"></i> Download
+                                    </a>
+                                {% else %}<span class="text-muted">Not provided</span>{% endif %}
+                            </div>
+
+                            <div class="col-md-6 d-flex justify-content-between">
+                                <b>Annotated Foreground:</b>
+                                {% if metadata.annotated_foreground %}
+                                    <a href="{{ metadata.annotated_foreground.url }}" class="btn btn-outline-success btn-sm" target="_blank">
+                                        <i class="bi bi-download"></i> Download
+                                    </a>
+                                {% else %}<span class="text-muted">Not available</span>{% endif %}
+                            </div>
+
+                            <div class="col-md-6 d-flex justify-content-between">
+                                <b>Annotated Background:</b>
+                                {% if metadata.annotated_background %}
+                                    <a href="{{ metadata.annotated_background.url }}" class="btn btn-outline-success btn-sm" target="_blank">
+                                        <i class="bi bi-download"></i> Download
+                                    </a>
+                                {% else %}<span class="text-muted">Not available</span>{% endif %}
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Results -->
+    {% if collections %}
+        {% for collection in collections %}
+        <div class="card mb-5 shadow-sm">
+            <div class="card-header bg-light"><h5>{{ collection.name }}</h5></div>
+            <div class="card-body row">
+                <div class="col-md-4 text-center">
+                    {{ collection.plot_html|safe }}
+                    <small class="text-muted d-block mt-2 fst-italic">Top 50 hits only</small>
+                </div>
+                <div class="col-md-8 table-responsive border rounded bg-white shadow-sm p-2"
+                     style="max-height:600px;overflow-y:auto;" data-collection="{{ collection.name }}">
+                    {{ collection.table_html|safe }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">No results available for this analysis.</div>
+    {% endif %}
+</div>
+
+<!-- DataTables -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css">
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+
+<script>
+$(function () {
+  $('table.datatable').each(function () {
+    let collectionName = $(this).closest('.table-responsive').data('collection') || 'GSEA_Results';
+    $(this).DataTable({
+      pageLength: 10,
+      ordering: true,
+      searching: true,
+      lengthChange: false,
+      responsive: true,
+      autoWidth: false,
+      order: [[4, 'desc']], // Updated At column index
+      dom: 'Bfrtip',
+      buttons: [{
+        extend: 'excel',
+        text: 'Download XLSX',
+        filename: collectionName.replace(/\s+/g, '_')
+      }],
+      language: {
+        emptyTable: "⚠️ No significant results found.",
+        zeroRecords: "⚠️ No matching records found.",
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+  /* Fixed-width badges */
+  .badge-fixed {
+    display: inline-block;
+    width: 120px;           /* adjust to your needs */
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.85rem;
+    padding: 0.5em;
+  }
+</style>
+
+<div class="container-fluid my-4">
+    <h2 class="mb-4 text-center">SOA Results: {{ soa.title }}</h2>
+
+    <!-- Error Handling -->
+    {% if soa.task.status == "FAILURE" %}
+    <div class="alert alert-danger">
+        <h5>Task Failed</h5>
+        <pre class="bg-light p-3 rounded" style="max-height:400px;overflow-y:auto;white-space:pre-wrap;">
+{{ soa.task.traceback }}
+        </pre>
+        <p><b>Task ID:</b> {{ soa.task.task_id }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Metadata -->
+    {% if metadata %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light"><h4 class="mb-0">{{ soa.title }}</h4></div>
+        <div class="card-body text-sm">
+            <div class="accordion" id="metadataAccordion">
+                <!-- General -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingGeneral">
+                        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseGeneral">
+                            General Information
+                        </button>
+                    </h2>
+                    <div id="collapseGeneral" class="accordion-collapse collapse" data-bs-parent="#metadataAccordion">
+                        <div class="accordion-body">
+                            <p><b>Creation Date:</b> {{ metadata.creation_date }}</p>
+                            <p><b>Submitter:</b> {{ soa.submitter }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parameters -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingParams">
+                        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseParams">
+                            Parameters
+                        </button>
+                    </h2>
+                    <div id="collapseParams" class="accordion-collapse collapse" data-bs-parent="#metadataAccordion">
+                        <div class="accordion-body row g-3">
+                            <div class="col-md-6">
+                                <strong>Reference genome:</strong> <a href="{% url 'reference-genome-detail' soa.reference_genome.pk %}">
+                                    {{ soa.reference_genome }}
+                                </a>
+                            </div>
+                            <div class="col-md-6"><b>Foreground:</b>
+                                {% if metadata.foreground %}
+                                    <a href="{{ metadata.foreground.url }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-download"></i> Download
+                                    </a>
+                                {% else %}<span class="text-muted">Not provided</span>{% endif %}
+                            </div>
+                            <div class="col-md-6"><b>Significance Level:</b> {{ metadata.significance_level }}</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Results -->
+    {% if soa.task.status == "SUCCESS" and results %}
+    <div class="card shadow-sm mb-5">
+        <div class="card-header bg-light"><h4 class="mb-0">Results</h4></div>
+        <div class="card-body">
+            <div class="table-responsive border rounded bg-white shadow-sm p-2">
+                <table id="soa-results" class="table table-striped table-hover table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Study</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-end">Overlapping records</th>
+                            <th class="text-end">Fraction</th>
+                            <th>Category</th>
+                            <th>Link</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in results %}
+                        <tr>
+                            <td><strong>{{ record.Study }}</strong></td>
+                            <td>{{ record.Total }}</td>
+                            <td>{{ record.Ovp }}</td>
+                            <td>{{ record.Fraction|floatformat:2 }}</td>
+                            <td class="text-center">
+                              <span class="badge bg-success badge-fixed">{{ record.Category }}</span>
+                            </td>
+                            <td>
+                                {% if record.Link %}
+                                    <a href="{{ record.Link }}" class="btn btn-outline-primary" target="_blank">View</a>
+                                {% else %}
+                                    <span class="text-muted">No link</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% elif soa.task.status != "FAILURE" %}
+        <div class="alert alert-info">No results available for this analysis.</div>
+    {% endif %}
+</div>
+
+<!-- DataTables -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css">
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+
+<script>
+$(function () {
+  $('#soa-results').DataTable({
+    pageLength: 10,
+    ordering: true,
+    order: [[3, 'desc']], // sort by Fraction
+    lengthChange: false,
+    responsive: true,
+    autoWidth: false,
+    dom: 'Bfrtip',
+    buttons: [{
+      extend: 'excel',
+      text: 'Download XLSX',
+      filename: 'SOA_Results'
+    }],
+    columnDefs: [
+      { targets: [1,2,3], className: 'text-end' }
+    ],
+    language: {
+        emptyTable: "⚠️ No significant results found.",
+        zeroRecords: "⚠️ No matching records found.",
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="card-title">{{ object.name }} ({{ object.version }})</h2>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <tbody>
+                    {% if object.annotations_file %}
+                    <tr>
+                        <th scope="row">Annotations File</th>
+                        <td>
+                            <a href="{{ object.annotations_file.url }}" class="btn btn-sm btn-outline-primary" download>
+                                Download
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    {% if object.chrom_size_file %}
+                    <tr>
+                        <th scope="row">Chrom Size File</th>
+                        <td>
+                            <a href="{{ object.chrom_size_file.url }}" class="btn btn-sm btn-outline-primary" download>
+                                Download
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <tr>
+                        <th scope="row">Created At</th>
+                        <td>{{ object.created_at }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Updated At</th>
+                        <td>{{ object.updated_at }}</td>
+                    </tr>
+
+                    {% if chains %}
+                    <tr>
+                        <th scope="row">Related Chain Files</th>
+                        <td>
+                            <ul class="list-group">
+                                {% for chain in chains %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Chain: {{ chain.source_genome.name }} → {{ chain.target_genome.name }}
+                                    <a href="{{ chain.file.url }}" class="btn btn-sm btn-outline-primary" download>
+                                        Download
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <th scope="row">Related Chain Files</th>
+                        <td><em>No chain files available for this genome.</em></td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

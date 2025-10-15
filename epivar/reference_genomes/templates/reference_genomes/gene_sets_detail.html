@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="card-title">{{ object.name }}</h2>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <tbody>
+                    <tr>
+                        <th scope="row">Collection</th>
+                        <td>{{ object.collection }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Subcollection</th>
+                        <td>{{ object.subcollection }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Subset</th>
+                        <td>{{ object.subset }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Systematic Name</th>
+                        <td>{{ object.systematic_name }}</td>
+                    </tr>
+
+                    {% if object.exact_source %}
+                    <tr>
+                        <th scope="row">Exact Source</th>
+                        <td>{{ object.exact_source }}</td>
+                    </tr>
+                    {% endif %}
+
+                    {% if object.external_details_url %}
+                    <tr>
+                        <th scope="row">External Details</th>
+                        <td>
+                            <a href="{{ object.external_details_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">
+                                Open Link
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    {% if object.pmid %}
+                    <tr>
+                        <th scope="row">PubMed ID</th>
+                        <td>
+                            {{ object.pmid }}
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    {% if object.reference %}
+                    <tr>
+                        <th scope="row">Reference</th>
+                        <td>{{ object.reference|linebreaksbr }}</td>
+                    </tr>
+                    {% endif %}
+
+                    {% if object.reference_url %}
+                    <tr>
+                        <th scope="row">Reference URL</th>
+                        <td>
+                            <a href="{{ object.reference_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">
+                                Open link
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <tr>
+                        <th scope="row">Genes</th>
+                        <td>
+                            {% if object.genes %}
+                                {{ object.genes.genes }}
+                            {% else %}
+                                <em>No genes listed</em>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row">
+    {% for member in members %}
+      <div class="col-md-4 mb-4">
+        <div class="card shadow-sm rounded h-100 text-center">
+          {% if member.logo %}
+            <div class="logo-wrapper mx-auto mt-3">
+              <img src="{{ member.logo.url }}"
+                   class="logo-img"
+                   alt="{{ member.institution }} logo">
+            </div>
+          {% endif %}
+          <div class="card-body">
+            <h5 class="card-title">{{ member.full_name }}</h5>
+            <p class="card-text text-muted">{{ member.institution }}</p>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <p>No consortium members found.</p>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+  .logo-wrapper {
+    width: 125px;   /* fixed box width */
+    height: 125px;  /* fixed box height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .logo-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* keeps proportions */
+  }
+</style>
+{% endblock %}

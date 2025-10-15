@@ -1,0 +1,21 @@
+{% extends 'base_study_template.html' %}
+{% block analysis %}
+
+<!-- Analysis Plots -->
+<div class="card shadow-sm rounded-4 mb-4">
+  <div class="card-header"><h5 class="mb-0">Analysis Plots</h5></div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-12 text-center mb-4">
+        <h6>Genomic distribution (average)</h6>
+        {% if mh %}
+          <div>{{ mh|safe }}</div>
+        {% else %}
+          <div class="border rounded-3 bg-light p-5 text-muted">Plot placeholder</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

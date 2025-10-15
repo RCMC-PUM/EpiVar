@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+
+<!-- Card container -->
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <div class="card shadow-sm rounded-4">
+
+            <!-- Card Header -->
+            <div class="card-header text-center">
+                <h4>Edit Profile</h4>
+            </div>
+
+            <!-- Card Body -->
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <button type="submit" class="btn btn-outline-primary" style="width:100%">
+                        Save Changes
+                    </button>
+                </form>
+            </div>
+
+            <!-- Card Footer -->
+            <div class="card-footer text-body-secondary text-center">
+                <a href="{% url 'change-password' %}" >Change password</a>
+                <hr style="margin: 5px">
+                <a href="{% url 'home' %}">Back to Home page</a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<script src="https://cdn.plot.ly/plotly-3.1.0.min.js"></script>
+
+<style>
+  .datatable td {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+  .datatable td:hover {
+    white-space: normal;
+    overflow: visible;
+    background-color: #f8f9fa;
+    position: relative;
+    z-index: 10;
+  }
+</style>
+
+<div class="container-fluid my-4">
+    <h2 class="mb-4 text-center">LOA Results: {{ loa.title }}</h2>
+
+    <!-- Error Handling -->
+    {% if loa.task.status == "FAILURE" %}
+    <div class="alert alert-danger">
+        <h5>Task Failed</h5>
+        <pre class="bg-light p-3 rounded" style="max-height:400px;overflow-y:auto;white-space:pre-wrap;">
+            {{ loa.task.traceback }}
+        </pre>
+        <p><b>Task ID:</b> {{ loa.task.task_id }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Metadata -->
+    {% if metadata %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light"><h4 class="mb-0">{{ loa.title }}</h4></div>
+        <div class="card-body text-sm">
+            <div class="accordion" id="metadataAccordion">
+
+                <!-- General -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingGeneral">
+                        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseGeneral">
+                            General Information
+                        </button>
+                    </h2>
+                    <div id="collapseGeneral" class="accordion-collapse collapse" data-bs-parent="#metadataAccordion">
+                        <div class="accordion-body">
+                            <p><b>Analysis title:</b> {{ loa.title }}</p>
+                            <p><b>Creation Date:</b> {{ metadata.creation_date }}</p>
+                            <p><b>Submitter:</b> {{ loa.submitter }}</p>
+                            <p><b>Universe:</b> {{ universe }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Files -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingFiles">
+                        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFiles">
+                            Input Files
+                        </button>
+                    </h2>
+                    <div id="collapseFiles" class="accordion-collapse collapse" data-bs-parent="#metadataAccordion">
+                        <div class="accordion-body row g-3">
+
+                            <div class="col-md-6 d-flex justify-content-between">
+                                <b>Foreground:</b>
+                                {% if metadata.foreground %}
+                                    <a href="{{ metadata.foreground.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                                        <i class="bi bi-download"></i> Download
+                                    </a>
+                                {% else %}<span class="text-muted">Not provided</span>{% endif %}
+                            </div>
+
+                            <div class="col-md-6 d-flex justify-content-between">
+                                <b>Background:</b>
+                                {% if metadata.background %}
+                                    <a href="{{ metadata.background.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                                        <i class="bi bi-download"></i> Download
+                                    </a>
+                                {% else %}<span class="text-muted">Not provided</span>{% endif %}
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Results -->
+    {% if collections %}
+        {% for collection in collections %}
+        <div class="card mb-5 shadow-sm">
+            <div class="card-header bg-light"><h5>{{ collection.name }}</h5></div>
+            <div class="card-body row">
+                <div class="col-md-4 text-center">
+                    {{ collection.plot_html|safe }}
+                    <small class="text-muted d-block mt-2 fst-italic">Top 50 hits only</small>
+                </div>
+                <div class="col-md-8 table-responsive border rounded bg-white shadow-sm p-2"
+                     style="max-height:600px;overflow-y:auto;" data-collection="{{ collection.name }}">
+                    {{ collection.table_html|safe }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">No results available for this analysis.</div>
+    {% endif %}
+</div>
+
+<!-- DataTables -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css">
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+
+<script>
+$(function () {
+  $('table.datatable').each(function () {
+    let collectionName = $(this).closest('.table-responsive').data('collection') || 'LOA_Results';
+    $(this).DataTable({
+      pageLength: 10,
+      ordering: true,
+      searching: true,
+      lengthChange: false,
+      responsive: true,
+      autoWidth: false,
+      dom: 'Bfrtip',
+      order: [[4, 'desc']], // Updated At column index
+      buttons: [{
+        extend: 'excel',
+        text: 'Download XLSX',
+        filename: collectionName.replace(/\s+/g, '_')
+      }],
+      language: {
+        emptyTable: "⚠️ No significant results found.",
+        zeroRecords: "⚠️ No matching records found.",
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+
+<style>
+    .submission-card {
+        background-color: #ffffff;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .submission-card:hover {
+        transform: translateY(-5px);
+    }
+    .submission-card .card-header {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 15px;
+    }
+    .submission-card .card-content {
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        color: #555;
+        margin-bottom: 20px;
+    }
+    .submission-card .card-footer {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    /* Floating Add Project button */
+    .add-project-btn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1050;
+    }
+</style>
+
+<div class="container py-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Submit new study</h2>
+        <a href="{% url 'create-project' %}" class="btn btn-outline-primary">Create new project +</a>
+    </div>
+
+    <div class="row g-4">
+        <!-- Association Study -->
+        <div class="col-12 col-md-4">
+            <div class="submission-card">
+                <div class="card-header">
+                    Association Study
+                </div>
+                <div class="card-content">
+                    A study describing associations between epigenomic alterations and phenotype e.g. EWAS.
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'submit-association-study' %}" class="btn btn-outline-success">
+                        Submit <i class="fa-regular fa-circle-right"></i>
+                    </a>
+                    <a href="{% url 'home' %}" class="btn btn-outline-info">Read More</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interaction Study -->
+        <div class="col-12 col-md-4">
+            <div class="submission-card">
+                <div class="card-header">
+                    Interaction Study
+                </div>
+                <div class="card-content">
+                    A study describing interactions between genomic/epigenomic interaction e.g chromatin loops.
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'submit-interaction-study' %}" class="btn btn-outline-success">
+                        Submit <i class="fa-regular fa-circle-right"></i>
+                    </a>
+                    <a href="{% url 'home' %}" class="btn btn-outline-info">Read More</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profiling Study -->
+        <div class="col-12 col-md-4">
+            <div class="submission-card">
+                <div class="card-header">
+                    Profiling Study
+                </div>
+                <div class="card-content">
+                    A profiling study describing reference epigenome for specific set of samples e.g. DNAm CD4+.
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'submit-profiling-study' %}" class="btn btn-outline-success">
+                        Submit <i class="fa-regular fa-circle-right"></i>
+                    </a>
+                    <a href="{% url 'home' %}" class="btn btn-outline-info">Read More</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

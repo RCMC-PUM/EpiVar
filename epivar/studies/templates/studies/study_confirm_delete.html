@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5 d-flex justify-content-center">
+    <div class="card shadow-sm" style="max-width: 500px; width: 100%;">
+        <div class="card-header bg-danger text-white">
+            <h4 class="mb-0">Confirm Delete</h4>
+        </div>
+        <div class="card-body">
+            <p class="card-text">
+                Are you sure you want to delete <strong>{{ object }}</strong>?
+            </p>
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'submitted-studies' %}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

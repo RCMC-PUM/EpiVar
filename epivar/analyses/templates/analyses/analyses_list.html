@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-end mb-4">
+        <a href="{% url 'gsea-submission-form' %}" class="btn btn-outline-primary me-2">GSEA +</a>
+        <a href="{% url 'loa-submission-form' %}" class="btn btn-outline-primary me-2">LOA +</a>
+        <a href="{% url 'soa-submission-form' %}" class="btn btn-outline-primary me-2">SOA +</a>
+    </div>
+
+    <table id="analysesTable" class="table table-striped table-hover">
+        <thead class="table-success">
+        <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Creation date</th>
+            <th>Category</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for analysis in analyses %}
+        <tr>
+            <td>{{ analysis.title|truncatechars:25 }}</td>
+
+            <!-- Status -->
+            <td>
+                {% if analysis.task.status == 'SUCCESS' %}
+                    <button class="btn btn-success" style="width: 85px" disabled>{{ analysis.task.status|title }}</button>
+                {% elif analysis.task.status == 'FAILURE' %}
+                    <button class="btn btn-danger" style="width: 85px" disabled>{{ analysis.task.status|title }}</button>
+                {% elif analysis.task.status == 'STARTED' %}
+                    <button class="btn btn-info" style="width: 85px" disabled>{{ analysis.task.status|title }}</button>
+                {% else %}
+                    <button class="btn btn-warning" style="width: 85px" disabled>Pending</button>
+                {% endif %}
+            </td>
+
+            <!-- Creation date -->
+            <td data-order="{{ analysis.created_at|date:'U' }}">
+                {{ analysis.created_at }}
+            </td>
+
+            <!-- Category -->
+            <td>
+                {% if analysis.category == "GSEA" %}
+                    <button class="btn btn-outline-primary" disabled style="width: 75px">{{ analysis.category }}</button>
+                {% elif analysis.category == "LOA" %}
+                    <button class="btn btn-outline-success" disabled style="width: 75px">{{ analysis.category }}</button>
+                {% elif analysis.category == "SOA" %}
+                    <button class="btn btn-outline-dark" disabled style="width: 75px">{{ analysis.category }}</button>
+                {% else %}
+                    <button class="btn btn-outline-secondary" disabled style="width: 75px">N/A</button>
+                {% endif %}
+            </td>
+
+            <!-- Actions -->
+            <td>
+                <div class="d-flex gap-2">
+                    {% if analysis.task.status == 'SUCCESS' %}
+                        <a href="{% url analysis.category|lower|add:'-detail-view' analysis.id %}"
+                           class="btn btn-outline-primary" style="width: 75px">View</a>
+                    {% elif analysis.task.status == 'FAILURE' %}
+                        <a href="{% url analysis.category|lower|add:'-detail-view' analysis.id %}"
+                           class="btn btn-outline-danger" style="width: 75px">View</a>
+                    {% else %}
+                        <a href="#" class="btn btn-outline-primary disabled" style="width: 75px">View</a>
+                    {% endif %}
+
+                    <a href="{% url analysis.category|lower|add:'-delete-view' analysis.id %}"
+                       class="btn btn-danger" style="width: 75px">Delete</a>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- DataTables Scripts -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        $('#analysesTable').DataTable({
+            pageLength: 10,
+            ordering: true,
+            searching: true,
+            lengthChange: true,
+            responsive: true,
+            autoWidth: false,
+            columnDefs: [
+                { targets: "_all", defaultContent: "" }
+            ],
+            order: [[2, "desc"]]
+        });
+    });
+</script>
+
+{% endblock %}

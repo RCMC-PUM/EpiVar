@@ -1,0 +1,308 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+
+<style>
+    /* Parallax background */
+    body {
+        position: relative;
+        background-color: #f0f0f0; /* fallback */
+    }
+    body::before {
+        content: "";
+        position: fixed;       /* stays in place for parallax effect */
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url("{% static 'images/background.png' %}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        opacity: 0.25;         /* your requested opacity */
+        z-index: -1;           /* behind all content */
+        pointer-events: none;  /* so it doesn’t block clicks */
+    }
+    .stat-card {
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+        height: 100%;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .circle {
+        position: relative;
+        width: 100%;
+        max-width: 150px; /* ensures responsiveness */
+        margin: 0 auto 15px;
+    }
+    .circle svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        transform: rotate(-90deg);
+    }
+    .circle circle {
+        fill: none;
+        stroke-width: 10;
+        stroke-linecap: round;
+    }
+    .circle .bg {
+        stroke: #e9ecef;
+    }
+    .circle .progress {
+        stroke: #007bff;
+        stroke-dasharray: 0;
+        stroke-dashoffset: 0;
+        transition: stroke-dashoffset 1s linear;
+    }
+    .circle .number {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #007bff;
+        white-space: nowrap;
+    }
+    .stat-label {
+        font-size: 1.1rem;
+        color: #6c757d;
+    }
+    .frame {
+    background-color: #ffffff; /* White background */
+    padding: 2rem;             /* Inner spacing */
+    border-radius: 20px;       /* Rounded corners */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); /* Soft shadow */
+    max-width: 1200px;         /* Optional: limit width */
+    margin: 2rem auto;         /* Center on page */
+    }
+    .top-text-frame {
+    background-color: #f8f9fa;      /* Light gray background */
+    padding: 3rem 1.5rem;           /* Spacious padding */
+    border-radius: 20px;            /* Rounded corners */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* Soft shadow */
+    margin: 2rem auto;              /* Center with spacing from edges */
+    max-width: 1000px;              /* Optional max width */
+    text-align: center;             /* Center text */
+    }
+    .top-text-frame h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    }
+    .top-text-frame p.lead {
+    font-size: 1.25rem;
+    color: #555; /* Slightly muted text for readability */
+    }
+</style>
+
+<div class="container py-5 frame">
+    <!-- Headers-->
+    <div class="row">
+        <div class="col-12 text-center">
+            <h2>Welcome to EpiVar</h2>
+            <p class="lead">
+                Discover thousands of integrated gene sets, datasets, and genomics regions in one place. <br>
+                Share, explore and analyze high-quality (epi)genomic data.
+            </p>
+        </div>
+    </div>
+
+    <!-- Database numbers-->
+    <div class="row g-4">
+        <!-- GeneSets -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card">
+                <div class="circle">
+                    <svg viewBox="0 0 120 120">
+                        <circle class="bg" cx="60" cy="60" r="54"></circle>
+                        <circle class="progress" cx="60" cy="60" r="54" data-target="{{ gene_sets_number }}"></circle>
+                    </svg>
+                    <div class="number" data-target="{{ gene_sets_number }}">0</div>
+                </div>
+                <div class="stat-label">Thousand of integrated gene sets</div>
+            </div>
+        </div>
+
+        <!-- Studies -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card">
+                <div class="circle">
+                    <svg viewBox="0 0 120 120">
+                        <circle class="bg" cx="60" cy="60" r="54"></circle>
+                        <circle class="progress" cx="60" cy="60" r="54" data-target="{{ studies_number }}"></circle>
+                    </svg>
+                    <div class="number" data-target="{{ studies_number }}">0</div>
+                </div>
+                <div class="stat-label">Integrated datasets</div>
+            </div>
+        </div>
+
+        <!-- Genomic tracks -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card">
+                <div class="circle">
+                    <svg viewBox="0 0 120 120">
+                        <circle class="bg" cx="60" cy="60" r="54"></circle>
+                        <circle class="progress" cx="60" cy="60" r="54" data-target="{{ tracks_number }}"></circle>
+                    </svg>
+                    <div class="number" data-target="{{ tracks_number }}">0</div>
+                </div>
+                <div class="stat-label">Integrated genomics tracks</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<hr>
+
+<div class="container py-5">
+    <div class="row g-4">
+        <!-- Data Submission -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card d-flex flex-column justify-content-between h-100">
+                <!-- Header -->
+                <div class="card-header">
+                    <i class="fa-solid fa-file"></i>
+                    <h5>Data Submission</h5>
+                </div>
+                <!-- Content -->
+                <div class="card-content my-3 flex-grow-1">
+                    <p>Submit your own datasets.</p>
+                </div>
+                <!-- Footer -->
+                <div class="card-footer mt-auto">
+                    <a href="{% url 'start-submission' %}" class="btn btn-outline-info">Go <i class="fa-regular fa-circle-right"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Browser -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card d-flex flex-column justify-content-between h-100">
+                <div class="card-header">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <h5>Data Browser</h5>
+                </div>
+                <div class="card-content my-3 flex-grow-1">
+                    <p>Browse, explore and analyse integrated datasets interactively.</p>
+                </div>
+                <div class="card-footer mt-auto">
+                    <a href="{% url 'studies-list' %}" class="btn btn-outline-info">Go <i class="fa-regular fa-circle-right"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- GSEA Enrichment Analysis -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card d-flex flex-column justify-content-between h-100">
+                <div class="card-header">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <h5>Gene-set Enrichment Analysis (GSEA)</h5>
+                </div>
+                <div class="card-content my-3 flex-grow-1">
+                    <p>Perform Gene Set Enrichment Analysis on your data.</p>
+                </div>
+                <div class="card-footer mt-auto">
+                    <a href="{% url 'gsea-submission-form' %}" class="btn btn-outline-info">Go <i class="fa-regular fa-circle-right"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOA Locus Overlap Analysis -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card d-flex flex-column justify-content-between h-100">
+                <div class="card-header">
+                    <i class="fa-solid fa-chart-simple"></i>
+                    <h5>Locus Overlap Analysis (LOA)</h5>
+                </div>
+                <div class="card-content my-3 flex-grow-1">
+                    <p>Analyze overlaps of genomic loci across datasets.</p>
+                </div>
+                <div class="card-footer mt-auto">
+                    <a href="{% url 'loa-submission-form' %}" class="btn btn-outline-info">Go <i class="fa-regular fa-circle-right"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- SOA -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card d-flex flex-column justify-content-between h-100">
+                <div class="card-header">
+                    <i class="fa-solid fa-book"></i>
+                    <h5>Study overlap analysis (SOA)</h5>
+                </div>
+                <div class="card-content my-3 flex-grow-1">
+                    <p>Analyse how your data overlap with stored datasets.</p>
+                </div>
+                <div class="card-footer mt-auto">
+                    <a href="{% url 'home' %}" class="btn btn-outline-info">Go <i class="fa-regular fa-circle-right"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documentation -->
+        <div class="col-12 col-md-4">
+            <div class="stat-card d-flex flex-column justify-content-between h-100">
+                <div class="card-header">
+                    <i class="fa-solid fa-book"></i>
+                    <h5>Documentation</h5>
+                </div>
+                <div class="card-content my-3 flex-grow-1">
+                    <p>Learn how to use the platform and its tools effectively.</p>
+                </div>
+                <div class="card-footer mt-auto">
+                    <a href="{% url 'documentation' %}" class="btn btn-outline-info">Go <i class="fa-regular fa-circle-right"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const circles = document.querySelectorAll(".progress");
+    const numbers = document.querySelectorAll(".number");
+
+    const duration = 1500; // total animation time in ms
+
+    circles.forEach((circle, i) => {
+        const target = +circle.getAttribute("data-target");
+        const r = circle.getAttribute("r");
+        const circumference = 2 * Math.PI * r;
+
+        circle.style.strokeDasharray = circumference;
+        circle.style.strokeDashoffset = circumference;
+
+        const numberEl = numbers[i];
+        const startTime = performance.now();
+
+        function animate(now) {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1); // 0 → 1 fraction
+
+            // Circle progress
+            circle.style.strokeDashoffset = circumference * (1 - progress);
+
+            // Number progress (lock speed to same progress fraction)
+            numberEl.innerText = Math.round(progress * target);
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                // ensure exact finish
+                circle.style.strokeDashoffset = 0;
+                numberEl.innerText = target;
+            }
+        }
+        requestAnimationFrame(animate);
+    });
+});
+</script>
+{% endblock %}

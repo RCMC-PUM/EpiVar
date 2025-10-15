@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="card-title">{{ object.name }}</h2>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <tbody>
+                    <tr>
+                        <th scope="row">Description</th>
+                        <td>{{ object.description }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Reference Genome</th>
+                        <td>
+                            <a href="{% url 'reference-genome-detail' object.reference_genome.id %}" class="btn btn-outline-primary btn-sm">{{object.reference_genome}}</a>
+                        </td>
+                    </tr>
+
+                    {% if object.reference %}
+                    <tr>
+                        <th scope="row">Reference</th>
+                        <td>{{ object.reference|linebreaksbr }}</td>
+                    </tr>
+                    {% endif %}
+
+                    {% if object.reference_url %}
+                    <tr>
+                        <th scope="row">Reference URL</th>
+                        <td>
+                            <a href="{{ object.reference_url }}" target="_blank" rel="noopener noreferrer">
+                                {{ object.reference_url }}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    {% if object.file %}
+                    <tr>
+                        <th scope="row">File</th>
+                        <td>
+                            <a href="{{ object.file.url }}" class="btn btn-sm btn-outline-primary" download>
+                                Download
+                            </a>
+                            {% if object.file_checksum %}
+                                <small class="text-muted d-block mt-1">Checksum: {{ object.file_checksum }}</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    {% if object.file_index %}
+                    <tr>
+                        <th scope="row">File Index</th>
+                        <td>
+                            <a href="{{ object.file_index.url }}" class="btn btn-sm btn-outline-primary" download>
+                                Download
+                            </a>
+                            {% if object.file_index_checksum %}
+                                <small class="text-muted d-block mt-1">Checksum: {{ object.file_index_checksum }}</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

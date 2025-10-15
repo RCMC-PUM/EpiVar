@@ -1,0 +1,352 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row">
+
+    <!-- Left Column (Main Content) -->
+    <div class="col-12 col-lg-9">
+      <div class="card shadow-sm rounded-4 mb-4">
+        <div class="card-body">
+
+          <!-- Integration Status -->
+          <div class="d-flex align-items-center mb-3">
+            {% if study.integration_status == "pending" %}
+              <span class="badge bg-info rounded-circle me-2" style="width:12px;height:12px;">&nbsp;</span>
+            {% elif study.integration_status == "running" %}
+              <span class="badge bg-warning rounded-circle me-2" style="width:12px;height:12px;">&nbsp;</span>
+            {% elif study.integration_status == "passed" %}
+              <span class="badge bg-success rounded-circle me-2" style="width:12px;height:12px;">&nbsp;</span>
+            {% elif study.integration_status == "failed" %}
+              <span class="badge bg-danger rounded-circle me-2" style="width:12px;height:12px;">&nbsp;</span>
+            {% else %}
+              <span class="badge bg-secondary rounded-circle me-2" style="width:12px;height:12px;">&nbsp;</span>
+            {% endif %}
+            <span class="fw-bold text-uppercase text-secondary">Integration Status</span>
+          </div>
+
+          <h4 class="mb-3">
+            {% if study.integration_status == "pending" %}
+              Your <b>{{ study.study_type }}</b> is waiting for processing
+            {% elif study.integration_status == "running" %}
+              Your <b>{{ study.study_type }}</b> is being processed
+            {% elif study.integration_status == "passed" %}
+              Your <b>{{ study.study_type }}</b> is integrated
+            {% elif study.integration_status == "failed" %}
+              Your <b>{{ study.study_type }}</b> failed during integration
+            {% else %}
+              <b>{{ study.study_type }}</b> status: unknown
+            {% endif %}
+          </h4>
+
+          {% if integration_message %}
+            <div class="alert alert-info">
+              <strong>Integration message</strong>
+              <p class="mb-0">{{ integration_message }}</p>
+            </div>
+          {% endif %}
+
+          <p class="text-muted">
+            {% if study.integration_status == "passed" %}
+              The submission has successfully passed technical checks and is now fully available in the system.
+            {% elif study.integration_status == "failed" %}
+              The integration encountered errors. Please check the traceback or contact support.
+            {% else %}
+              The integration process may take some time. You will be notified once it’s complete.
+            {% endif %}
+          </p>
+        </div>
+      </div>
+
+      <!-- Study Descriptions Section -->
+      <div class="card shadow-sm rounded-4 mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Study Descriptions</h5>
+        </div>
+        <div class="card-body">
+          <p><strong>Overall description:</strong><br>{{ study.overall_description|default:"-" }}</p>
+          <p><strong>Sample processing description:</strong><br>{{ study.sample_processing_description|default:"-" }}</p>
+          <p><strong>Data processing description:</strong><br>{{ study.data_processing_description|default:"-" }}</p>
+        </div>
+      </div>
+
+      <!-- Study Characteristics -->
+      <div class="row">
+
+        <!-- Biosample -->
+        {% if study.biosample %}
+        <div class="col-md-4 mb-4">
+          <div class="card shadow-sm rounded-4 h-100">
+            <div class="card-header">
+              <h5 class="mb-0">Biosample</h5>
+            </div>
+            <div class="card-body small">
+              <p><strong>Tissue:</strong> {{ study.biosample.tissue }}</p>
+              {% if study.biosample.cell %}<p><strong>Cell type:</strong> {{ study.biosample.cell }}</p>{% endif %}
+              <p><strong>Analyte:</strong> {{ study.biosample.analyte }}</p>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Sample -->
+        {% if study.sample %}
+        <div class="col-md-4 mb-4">
+          <div class="card shadow-sm rounded-4 h-100">
+            <div class="card-header">
+              <h5 class="mb-0">Sample</h5>
+            </div>
+            <div class="card-body small">
+              <p><strong>Size size:</strong> {{ study.sample.sample_size }}</p>
+              <p><strong>Replication type:</strong> {{ study.sample.get_replication_type_display }}</p>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Platform -->
+        {% if study.platform %}
+        <div class="col-md-4 mb-4">
+          <div class="card shadow-sm rounded-4 h-100">
+            <div class="card-header">
+              <h5 class="mb-0">Platform</h5>
+            </div>
+            <div class="card-body small">
+              <p><strong>Platform:</strong> {{ study.platform.platform }}</p>
+              <p><strong>Assay:</strong> {{ study.platform.assay }}</p>
+              <p><strong>Target:</strong> {{ study.platform.target }}</p>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Phenotype -->
+        {% if study.phenotype %}
+        <div class="col-md-4 mb-4">
+          <div class="card shadow-sm rounded-4 h-100">
+            <div class="card-header">
+              <h5 class="mb-0">Phenotype</h5>
+            </div>
+            <div class="card-body small">
+              <p><strong>HPO:</strong> {{ study.phenotype.hpo }}</p>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Investigation -->
+        {% if study.investigation_model %}
+        <div class="col-md-4 mb-4">
+          <div class="card shadow-sm rounded-4 h-100">
+            <div class="card-header">
+              <h5 class="mb-0">Investigation</h5>
+            </div>
+            <div class="card-body small">
+              <p><strong>Model:</strong> {{ study.investigation_model.investigation_model }}</p>
+              <p><strong>Test:</strong> {{ study.investigation_model.statistical_test }}</p>
+              <p><strong>Effect Size Metric:</strong> {{ study.investigation_model.effect_size_metric }}</p>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+
+      <!-- Analysis Plots & Datasets (only if passed) -->
+      {% if study.integration_status == "passed" %}
+        {% block analysis %}
+        {% endblock %}
+
+        <!-- Generic Related Datasets -->
+        <div class="card shadow-sm rounded-4 mb-4">
+          <div class="card-header d-flex justify-content-between">
+            <h5 class="mb-0">Related Datasets</h5>
+            <span class="badge bg-secondary">{{ datasets|length }} total</span>
+          </div>
+          <div class="card-body">
+            {% if datasets %}
+              <div class="list-group list-group-flush">
+                {% for ds in datasets %}
+                  <div class="list-group-item py-3">
+                    <div class="fw-semibold">Association Data [{{ study.study_id }}]</div>
+                    <div class="small text-muted">
+                      Reference Genome: {{ ds.reference_genome }}
+                      {% if ds.liftover %}
+                        · Liftover: Yes
+                      {% else %}
+                        · Liftover: No
+                      {% endif %}
+                    </div>
+
+                    {% if ds.liftover and ds.data_conversion_metrics %}
+                      <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-secondary" type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#metrics-{{ forloop.counter }}"
+                                aria-expanded="false"
+                                aria-controls="metrics-{{ forloop.counter }}">
+                          Show Data Conversion Metrics
+                        </button>
+                        <div class="collapse mt-2" id="metrics-{{ forloop.counter }}">
+                          <p>{{ ds.data_conversion_metrics }}</p>
+                        </div>
+                      </div>
+                    {% endif %}
+
+                    <div class="row row-cols-1 row-cols-md-3 g-3 mt-2">
+                      <div class="col">
+                        <div class="border rounded-3 p-3 h-100">
+                          <div class="fw-semibold mb-2">Data</div>
+                          {% if ds.data %}
+                            <a href="{{ ds.data.url }}" class="btn btn-sm btn-outline-primary">Download</a>
+                          {% else %}
+                            <span class="text-muted">No file.</span>
+                          {% endif %}
+                        </div>
+                      </div>
+
+                      <div class="col">
+                        <div class="border rounded-3 p-3 h-100">
+                          <div class="fw-semibold mb-2">Index</div>
+                          {% if ds.data_index %}
+                            <a href="{{ ds.data_index.url }}" class="btn btn-sm btn-outline-primary">Download</a>
+                          {% else %}
+                            <span class="text-muted">No index.</span>
+                          {% endif %}
+                        </div>
+                      </div>
+
+                      <div class="col">
+                        <div class="border rounded-3 p-3 h-100">
+                          <div class="fw-semibold mb-2">Annotations</div>
+                          {% if ds.annotations %}
+                            <a href="{{ ds.annotations.url }}" class="btn btn-sm btn-outline-primary">Download</a>
+                          {% else %}
+                            <span class="text-muted">No annotations.</span>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="text-muted mb-0">No related datasets.</p>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-12 col-lg-3">
+      <!-- Integration status -->
+      <div class="card shadow-sm rounded-4 mb-4">
+        <div class="card-body">
+          <h6 class="mb-3">Integration status</h6>
+          <ul class="list-unstyled">
+            {% for label, active, failed in progress_steps %}
+              <li class="d-flex align-items-center mb-2">
+                {% if failed %}
+                  <span class="badge rounded-circle bg-danger me-2">✗</span>
+                  <span class="text-danger fw-bold">{{ label }}</span>
+                {% elif active %}
+                  <span class="badge rounded-circle bg-success me-2">✓</span>
+                  <span>{{ label }}</span>
+                {% else %}
+                  <span class="badge rounded-circle bg-light border me-2">&nbsp;</span>
+                  <span>{{ label }}</span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Submission details -->
+      <div class="card shadow-sm rounded-4 mb-4">
+        <div class="card-body">
+          <h6 class="mb-3">Your submission</h6>
+          <div class="small">
+            <div><strong>Type:</strong> {{ study.study_type }}</div>
+            <hr>
+            <div><strong>ID:</strong> {{ study.study_id }}</div>
+            <div><strong>Title:</strong> {{ study.title }}</div>
+            <div><strong>Project:</strong> {{ study.project.project_id|default:"-" }}</div>
+            <div><strong>Submitter:</strong> {{ study.submitter }}</div>
+            <hr>
+            <div><strong>Status:</strong> {{ study.get_record_status_display }}</div>
+            <div><strong>Integration:</strong> {{ study.get_integration_status_display }}</div>
+            <hr>
+            <div><strong>Created:</strong> {{ study.created_at|date:"Y-m-d H:i" }}</div>
+            <div><strong>Updated:</strong> {{ study.updated_at|date:"Y-m-d H:i" }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Similar studies section -->
+      <div class="card shadow-sm rounded-4 mb-4">
+        <div class="card-body text-aligned">
+          <h6 class="mb-3">TOP 5 similar studies</h6>
+          {% if similar_studies %}
+            <ul class="list-group list-group-flush">
+              {% for study in similar_studies %}
+                <li class="list-group-item px-0">
+                  {% if study.study_type == "Association study" %}
+                    <a href="{% url 'association-study-detail' study.study_id %}">
+                      {{ study.study_id }} - {{ study.title|truncatechars:25 }}
+                    </a>
+                  {% elif study.study_type == "Interaction study" %}
+                    <a href="{% url 'interaction-study-detail' study.study_id %}">
+                      {{ study.study_id }} - {{ study.title|truncatechars:25 }}
+                    </a>
+                  {% elif study.study_type == "Profiling study" %}
+                    <a href="{% url 'profiling-study-detail' study.study_id %}">
+                      {{ study.study_id }} - {{ study.title|truncatechars:25 }}
+                    </a>
+                  {% else %}
+                    {{ study.study_id }} - {{ study.title|truncatechars:25 }}
+                  {% endif %}
+
+                  <div class="small text-muted">
+                    {{ study.study_type }}
+                    {% if study.project %} (Project: {{ study.project.project_id }}){% endif %}
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted">No similar studies found.</p>
+          {% endif %}
+
+          <div class="small mt-3">
+            <hr>
+            <p class="text-muted">
+              Disclaimer: similarity search performed using LLM model.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Help section -->
+      <div class="card shadow-sm rounded-4 mb-4">
+        <div class="card-body text-aligned">
+          <h6 class="mb-3">Need help?</h6>
+          <div class="small">
+            <p class="mb-2">
+              If you have any questions about this submission, you can email:
+              <a href="mailto:jan.binkowski@pum.edu.pl">jan.binkowski@pum.edu.pl</a>
+            </p>
+            <hr>
+            <p class="mb-0">
+              For general enquiries, please look at our
+              <a href="#">information</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

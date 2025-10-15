@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<style>
+  #studiesTable td {
+    max-width: 200px;          /* adjust as needed */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+
+  #studiesTable td:hover {
+    white-space: normal;
+    overflow: visible;
+    background-color: #f8f9fa;
+    position: relative;
+    z-index: 10;
+  }
+
+  /* Fixed-width badges */
+  .badge-fixed {
+    display: inline-block;
+    width: 155px;              /* fixed length */
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.85rem;
+    padding: 0.5em;
+  }
+</style>
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4" >
+        <h2 class="mb-0">Submitted Studies</h2>
+        <a href="{% url 'start-submission' %}" class="btn btn-outline-primary">Submit Study +</a>
+    </div>
+
+    <!-- Global Studies Table -->
+    <div class="table-responsive">
+        <table id="studiesTable" class="table table-striped table-hover align-middle">
+            <thead class="table-light">
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Project</th>
+                <th>Study Type</th>
+                <th>Target</th>
+                <th>Tissue</th>
+                <th>Cell</th>
+                <th>Phenotype (HPO)</th>
+                <th>Created At</th>
+                <th>Record Status</th>
+                <th>Integration Status</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for study in studies %}
+            <tr>
+                <td><strong>{{ study.study_id }}</strong></td>
+                <td>{{ study.title }}</td>
+                <td>{% if study.project %}{{ study.project.project_id }}{% endif %}</td>
+                <td>
+                    <span class="badge bg-secondary badge-fixed">{{ study.study_type }}</span>
+                </td>
+                <td>{% if study.platform.target %}{{ study.platform.target }}{% endif %}</td>
+                <td>{% if study.biosample and study.biosample.tissue %}{{ study.biosample.tissue }}{% endif %}</td>
+                <td>{% if study.biosample and study.biosample.cell %}{{ study.biosample.cell }}{% endif %}</td>
+                <td>{% if study.phenotype %}{{ study.phenotype.hpo }}{% endif %}</td>
+                <td>{{ study.created_at|date:"Y-m-d H:i" }}</td>
+                <td>
+                    <span class="badge badge-fixed
+                        {% if study.record_status == 'active' %} bg-success
+                        {% elif study.record_status == 'review' %} bg-warning text-dark
+                        {% else %} bg-danger
+                        {% endif %}">
+                        {{ study.record_status|title }}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge badge-fixed
+                        {% if study.integration_status == 'passed' %} bg-success
+                        {% elif study.integration_status == 'pending' %} bg-warning text-dark
+                        {% elif study.integration_status == 'running' %} bg-info text-dark
+                        {% else %} bg-danger
+                        {% endif %}">
+                        {{ study.integration_status|title }}
+                    </span>
+                </td>
+                <td>
+                    <div class="d-flex gap-2">
+                        {% if study.study_type == 'Association study' %}
+                            <a href="{% url 'association-study-detail' study_id=study.study_id %}" class="btn btn-outline-primary">View</a>
+                            <a href="{% url 'association-study-delete' study_id=study.study_id %}" class="btn btn-danger">Delete</a>
+                        {% elif study.study_type == 'Interaction study' %}
+                            <a href="{% url 'interaction-study-detail' study_id=study.study_id %}" class="btn btn-outline-primary">View</a>
+                            <a href="{% url 'interaction-study-delete' study_id=study.study_id %}" class="btn btn-danger">Delete</a>
+                        {% elif study.study_type == 'Profiling study' %}
+                            <a href="{% url 'profiling-study-detail' study_id=study.study_id %}" class="btn btn-outline-primary">View</a>
+                            <a href="{% url 'profiling-study-delete' study_id=study.study_id %}" class="btn btn-danger">Delete</a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- DataTables Scripts -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    var table = $('#studiesTable').DataTable({
+      pageLength: 10,
+      ordering: true,
+      order: [[8, 'desc']], // Updated At column index
+      searching: true,
+      lengthChange: true,
+      responsive: true,
+      autoWidth: false,
+      columnDefs: [
+        { targets: "_all", defaultContent: "" }
+      ]
+    });
+
+    $('#studiesTable tbody').on('mouseenter', 'td', function () {
+      var $cell = $(this);
+      var text = $cell.text();
+      if (text.trim() !== "") {
+        $cell.attr('title', text);
+      }
+    });
+  });
+</script>
+
+{% endblock %}
