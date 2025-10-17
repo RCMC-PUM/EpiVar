@@ -3,7 +3,7 @@ echo "----- Collect static files ------ "
 poetry run python manage.py collectstatic --noinput
 
 echo "----------- Apply migrations --------- "
-poetry run python manage.py makemigrations cms users ontologies reference_genomes studies datasets
+poetry run python manage.py makemigrations cms users ontologies reference_genomes studies datasets analyses
 poetry run python manage.py migrate
 
 echo "----------- Add superuser --------- "

@@ -94,6 +94,7 @@ class SOAForm(forms.ModelForm):
             "reference_genome",
             "foreground",
             "study_type",
+            "significance_level"
         ]
 
         help_texts = {
@@ -101,4 +102,5 @@ class SOAForm(forms.ModelForm):
             "reference_genome": "Select the reference genome for this analysis.",
             "foreground": "Upload dataset representing the test set.",
             "study_type": "Type of studies to search",
+            "significance_level": "p-value threshold (e.g., 0.05) for statistical significance. Applicable only for Asscoation and Interaction studies",
         }

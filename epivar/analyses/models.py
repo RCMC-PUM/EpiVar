@@ -141,13 +141,14 @@ class LOA(BaseAnalysis):
 class SOA(BaseAnalysis):
     """SOA-specific analysis model."""
     class StudyType(models.TextChoices):
-        ASSOCIATION = "association_study", "Association Study"
-        INTERACTION = "interaction_study", "Interaction Study"
-        PROFILING = "profiling_study", "Profiling Study"
+        ASSOCIATION = "association_study", "Association Studies"
+        INTERACTION = "interaction_study", "Interaction Studies"
+        PROFILING = "profiling_study", "Profiling Studies"
 
     study_type = models.CharField(
         max_length=50,
         choices=StudyType.choices,
+        default=StudyType.ASSOCIATION
     )
 
     class Meta:
