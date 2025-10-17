@@ -93,12 +93,12 @@ class SOAForm(forms.ModelForm):
             "title",
             "reference_genome",
             "foreground",
-            "significance_level",
+            "study_type",
         ]
 
         help_texts = {
             "title": "Short analysis description.",
             "reference_genome": "Select the reference genome for this analysis.",
             "foreground": "Upload dataset representing the test set.",
-            "significance_level": "p-value threshold (e.g., 0.05) for statistical significance.",
+            "study_type": "Type of studies to search",
         }

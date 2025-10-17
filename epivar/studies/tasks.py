@@ -29,7 +29,7 @@ from datasets.data_models import (
     validate_file,
 )
 
-from .plots import manhattan, qq, bar
+from .plots import manhattan, qq, bar, violin
 from .models import IntegrationStatus, Embedding, StudyData
 from .utils import update_integration_status
 
@@ -482,9 +482,8 @@ def generate_profiling_study_plots(self, study_model, instance_id, data_model):
     data_instances = data_class.objects.filter(study__id=instance_id)
 
     for data_instance in data_instances:
-        mh_plot = manhattan(data_instance.data.path, value_col="me", metric="me")
-
-        data_instance.plots = {"mh": mh_plot}
+        mh_plot = violin(data_instance.data.path, value_col="me")
+        data_instance.plots = {"vl": mh_plot}
         data_instance.save(update_fields=["plots"])
 
 

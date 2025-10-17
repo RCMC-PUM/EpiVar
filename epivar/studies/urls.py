@@ -24,11 +24,9 @@ urlpatterns = [
     # Studies lists
     path("studies/", StudiesView.as_view(), name="studies-list"),
     path("submitted_studies/", UserStudiesView.as_view(), name="submitted-studies"),
-
     # Start submission
     path("start_submission/", start_submission, name="start-submission"),
     path("create_project/", CreateProject.as_view(), name="create-project"),
-
     # Association study
     path(
         "association_study/submit",

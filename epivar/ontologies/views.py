@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django_addanother.views import CreatePopupMixin
 from django.views.generic.edit import CreateView
+from django.core.exceptions import ValidationError
 from .models import Term
 
 
@@ -28,10 +29,10 @@ class TermCreatePopup(CreatePopupMixin, CreateView):
             form.save(commit=True)
             return super().form_valid(form)
 
-        except ValueError:
+        except ValidationError:
             messages.error(
                 self.request,
-                f"{obo_id} is not a valid ontology ID or cannot be fetched from OLS!"
+                f"{obo_id} is not a valid ontology ID or cannot be fetched from OLS!",
             )
             # Re-render form with error message
             return self.form_invalid(form)

@@ -33,7 +33,7 @@ urlpatterns = [
     path("select2/", include("django_select2.urls")),
     path("reference/", include("reference_genomes.urls")),
     path("ontologies/", include("ontologies.urls")),
-    path("cms/", include("cms.urls"))
+    path("cms/", include("cms.urls")),
 ]
 
 if settings.DEBUG:

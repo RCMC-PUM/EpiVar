@@ -91,7 +91,7 @@ class ProfilingRecord(BaseModel):
     score: Literal["."]
     strand: Literal["+", "-", "."]
     me: confloat(ge=0)
-    #se: confloat(ge=0)
+    # se: confloat(ge=0)
 
     expected_order: ClassVar = (
         "#chrom",
@@ -101,7 +101,7 @@ class ProfilingRecord(BaseModel):
         "score",
         "strand",
         "me",
-        #"se",
+        # "se",
     )
 
 

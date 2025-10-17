@@ -46,9 +46,7 @@ class Command(BaseCommand):
                 self._create_profiling_study(row)
                 self.stdout.write(self.style.SUCCESS(f"Imported {row['study_id']}"))
             except Exception as e:
-                self.stderr.write(
-                    self.style.ERROR(f"Skipping {row['study_id']} - {e}")
-                )
+                self.stderr.write(self.style.ERROR(f"Skipping {row['study_id']} - {e}"))
 
         self.stdout.write(self.style.SUCCESS("Done importing ENCODE ProfilingStudies."))
 

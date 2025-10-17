@@ -7,10 +7,10 @@
 
     <!-- Left Column (Main Content) -->
     <div class="col-12 col-lg-9">
+
+      <!-- Integration Card -->
       <div class="card shadow-sm rounded-4 mb-4">
         <div class="card-body">
-
-          <!-- Integration Status -->
           <div class="d-flex align-items-center mb-3">
             {% if study.integration_status == "pending" %}
               <span class="badge bg-info rounded-circle me-2" style="width:12px;height:12px;">&nbsp;</span>
@@ -49,7 +49,7 @@
 
           <p class="text-muted">
             {% if study.integration_status == "passed" %}
-              The submission has successfully passed technical checks and is now fully available in the system.
+              The submission has successfully passed technical checks.
             {% elif study.integration_status == "failed" %}
               The integration encountered errors. Please check the traceback or contact support.
             {% else %}
@@ -59,31 +59,29 @@
         </div>
       </div>
 
-      <!-- Study Descriptions Section -->
+      <!-- Study Descriptions -->
       <div class="card shadow-sm rounded-4 mb-4">
-        <div class="card-header">
-          <h5 class="mb-0">Study Descriptions</h5>
-        </div>
+        <div class="card-header"><h5 class="mb-0">Study Description</h5></div>
         <div class="card-body">
           <p><strong>Overall description:</strong><br>{{ study.overall_description|default:"-" }}</p>
           <p><strong>Sample processing description:</strong><br>{{ study.sample_processing_description|default:"-" }}</p>
           <p><strong>Data processing description:</strong><br>{{ study.data_processing_description|default:"-" }}</p>
+          <p><strong>Reference:</strong><br>{{ study.reference|default:"-" }}</p>
         </div>
       </div>
 
-      <!-- Study Characteristics -->
+      <!-- Study Attributes -->
       <div class="row">
 
         <!-- Biosample -->
         {% if study.biosample %}
         <div class="col-md-4 mb-4">
           <div class="card shadow-sm rounded-4 h-100">
-            <div class="card-header">
-              <h5 class="mb-0">Biosample</h5>
-            </div>
+            <div class="card-header"><h5 class="mb-0">Biosample</h5></div>
             <div class="card-body small">
               <p><strong>Tissue:</strong> {{ study.biosample.tissue }}</p>
               {% if study.biosample.cell %}<p><strong>Cell type:</strong> {{ study.biosample.cell }}</p>{% endif %}
+              {% if study.biosample.cell_line %}<p><strong>Cell line:</strong> {{ study.biosample.cell_line }}</p>{% endif %}
               <p><strong>Analyte:</strong> {{ study.biosample.analyte }}</p>
             </div>
           </div>
@@ -94,11 +92,9 @@
         {% if study.sample %}
         <div class="col-md-4 mb-4">
           <div class="card shadow-sm rounded-4 h-100">
-            <div class="card-header">
-              <h5 class="mb-0">Sample</h5>
-            </div>
+            <div class="card-header"><h5 class="mb-0">Sample</h5></div>
             <div class="card-body small">
-              <p><strong>Size size:</strong> {{ study.sample.sample_size }}</p>
+              <p><strong>Sample size:</strong> {{ study.sample.sample_size }}</p>
               <p><strong>Replication type:</strong> {{ study.sample.get_replication_type_display }}</p>
             </div>
           </div>
@@ -109,9 +105,7 @@
         {% if study.platform %}
         <div class="col-md-4 mb-4">
           <div class="card shadow-sm rounded-4 h-100">
-            <div class="card-header">
-              <h5 class="mb-0">Platform</h5>
-            </div>
+            <div class="card-header"><h5 class="mb-0">Platform</h5></div>
             <div class="card-body small">
               <p><strong>Platform:</strong> {{ study.platform.platform }}</p>
               <p><strong>Assay:</strong> {{ study.platform.assay }}</p>
@@ -125,9 +119,7 @@
         {% if study.phenotype %}
         <div class="col-md-4 mb-4">
           <div class="card shadow-sm rounded-4 h-100">
-            <div class="card-header">
-              <h5 class="mb-0">Phenotype</h5>
-            </div>
+            <div class="card-header"><h5 class="mb-0">Phenotype</h5></div>
             <div class="card-body small">
               <p><strong>HPO:</strong> {{ study.phenotype.hpo }}</p>
             </div>
@@ -139,9 +131,7 @@
         {% if study.investigation_model %}
         <div class="col-md-4 mb-4">
           <div class="card shadow-sm rounded-4 h-100">
-            <div class="card-header">
-              <h5 class="mb-0">Investigation</h5>
-            </div>
+            <div class="card-header"><h5 class="mb-0">Investigation</h5></div>
             <div class="card-body small">
               <p><strong>Model:</strong> {{ study.investigation_model.investigation_model }}</p>
               <p><strong>Test:</strong> {{ study.investigation_model.statistical_test }}</p>
@@ -151,14 +141,34 @@
         </div>
         {% endif %}
 
+        <!-- Interaction Type -->
+        {% if study.interaction_type %}
+        <div class="col-md-4 mb-4">
+          <div class="card shadow-sm rounded-4 h-100">
+            <div class="card-header"><h5 class="mb-0">Interaction</h5></div>
+            <div class="card-body small">
+              <p><strong>Interaction type:</strong> {{ study.get_interaction_type_display }}</p>
+            </div>
+          </div>
+        </div>
+        {% endif %}
       </div>
 
-      <!-- Analysis Plots & Datasets (only if passed) -->
-      {% if study.integration_status == "passed" %}
-        {% block analysis %}
-        {% endblock %}
+      <!-- Raw Data Storage -->
+      {% if study.raw_data_storage %}
+      <div class="card shadow-sm rounded-4 mb-4">
+        <div class="card-header"><h5 class="mb-0">Raw Data Storage</h5></div>
+        <div class="card-body small">
+          <p><strong>Database:</strong> {{ study.raw_data_storage.raw_data_storage|default:"-"|upper }}</p>
+          <p><strong>Accession number:</strong> {{ study.raw_data_storage.raw_data_accession_number|default:"-" }}</p>
+        </div>
+      </div>
+      {% endif %}
 
-        <!-- Generic Related Datasets -->
+      <!-- Analysis & Related Datasets if integrated -->
+      {% if study.integration_status == "passed" %}
+        {% block analysis %}{% endblock %}
+
         <div class="card shadow-sm rounded-4 mb-4">
           <div class="card-header d-flex justify-content-between">
             <h5 class="mb-0">Related Datasets</h5>
@@ -169,7 +179,7 @@
               <div class="list-group list-group-flush">
                 {% for ds in datasets %}
                   <div class="list-group-item py-3">
-                    <div class="fw-semibold">Association Data [{{ study.study_id }}]</div>
+                    <div class="fw-semibold">Dataset [{{ study.study_id }}]</div>
                     <div class="small text-muted">
                       Reference Genome: {{ ds.reference_genome }}
                       {% if ds.liftover %}
@@ -241,7 +251,8 @@
 
     <!-- Right Column -->
     <div class="col-12 col-lg-3">
-      <!-- Integration status -->
+
+      <!-- Integration progress -->
       <div class="card shadow-sm rounded-4 mb-4">
         <div class="card-body">
           <h6 class="mb-3">Integration status</h6>
@@ -275,6 +286,7 @@
             <div><strong>Title:</strong> {{ study.title }}</div>
             <div><strong>Project:</strong> {{ study.project.project_id|default:"-" }}</div>
             <div><strong>Submitter:</strong> {{ study.submitter }}</div>
+            {% if study.reviewer %}<div><strong>Reviewer:</strong> {{ study.reviewer }}</div>{% endif %}
             <hr>
             <div><strong>Status:</strong> {{ study.get_record_status_display }}</div>
             <div><strong>Integration:</strong> {{ study.get_integration_status_display }}</div>
@@ -285,7 +297,7 @@
         </div>
       </div>
 
-      <!-- Similar studies section -->
+      <!-- Similar studies -->
       <div class="card shadow-sm rounded-4 mb-4">
         <div class="card-body text-aligned">
           <h6 class="mb-3">TOP 5 similar studies</h6>
@@ -308,7 +320,6 @@
                   {% else %}
                     {{ study.study_id }} - {{ study.title|truncatechars:25 }}
                   {% endif %}
-
                   <div class="small text-muted">
                     {{ study.study_type }}
                     {% if study.project %} (Project: {{ study.project.project_id }}){% endif %}
@@ -319,31 +330,18 @@
           {% else %}
             <p class="text-muted">No similar studies found.</p>
           {% endif %}
-
-          <div class="small mt-3">
-            <hr>
-            <p class="text-muted">
-              Disclaimer: similarity search performed using LLM model.
-            </p>
-          </div>
+          <div class="small mt-3"><hr><p class="text-muted">Disclaimer: similarity search performed using LLM model.</p></div>
         </div>
       </div>
 
       <!-- Help section -->
       <div class="card shadow-sm rounded-4 mb-4">
-        <div class="card-body text-aligned">
+        <div class="card-body text-aligned small">
           <h6 class="mb-3">Need help?</h6>
-          <div class="small">
-            <p class="mb-2">
-              If you have any questions about this submission, you can email:
-              <a href="mailto:jan.binkowski@pum.edu.pl">jan.binkowski@pum.edu.pl</a>
-            </p>
-            <hr>
-            <p class="mb-0">
-              For general enquiries, please look at our
-              <a href="#">information</a>.
-            </p>
-          </div>
+          <p class="mb-2">If you have any questions about this submission, you can email:
+            <a href="mailto:jan.binkowski@pum.edu.pl">jan.binkowski@pum.edu.pl</a></p>
+          <hr>
+          <p class="mb-0">For general enquiries, please look at our <a href="#">information</a>.</p>
         </div>
       </div>
     </div>

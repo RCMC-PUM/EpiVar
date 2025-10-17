@@ -79,20 +79,21 @@ class GSEADetailView(LoginRequiredMixin, DetailView):
 
         results = gsea.results or {}
         df = pd.DataFrame.from_records(results.get("gsea", []))
-        print(df)
 
         collections = []
         if not df.empty:
             for collection_name, sub_df in df.groupby("Collection"):
                 # Clean & filter table
-                sub_df = _clean_gsea_table(sub_df, correction_method=gsea.correction_method)
+                sub_df = _clean_gsea_table(
+                    sub_df, correction_method=gsea.correction_method
+                )
                 sub_df = sub_df[sub_df["Adjusted P-value"] <= gsea.significance_level]
 
                 if not sub_df.empty:
                     # Convert Term to clickable link
                     sub_df["Term"] = sub_df.apply(
                         lambda row: f'<a href="{reverse("gene-set-detail", args=[row["gene_set_id"]])}">{row["Term"]}</a>',
-                        axis=1
+                        axis=1,
                     )
                     sub_df = sub_df.drop("gene_set_id", axis=1)
                     plot_html = bubble_plot(sub_df.iloc[:50])
@@ -100,36 +101,46 @@ class GSEADetailView(LoginRequiredMixin, DetailView):
                     plot_html = "<p>No significant results to plot</p>"
 
                 sub_df.columns = [n.capitalize() for n in sub_df.columns]
-                collections.append({
-                    "name": collection_name,
-                    "table_html": sub_df.to_html(
-                        classes=["datatable", "table", "table-striped", "table-hover", "table-sm"],
-                        index=False,
-                        escape=False,
-                        border=0,
-                        table_id=f"table-{collection_name}",
-                    ),
-                    "plot_html": plot_html,
-                })
+                collections.append(
+                    {
+                        "name": collection_name,
+                        "table_html": sub_df.to_html(
+                            classes=[
+                                "datatable",
+                                "table",
+                                "table-striped",
+                                "table-hover",
+                                "table-sm",
+                            ],
+                            index=False,
+                            escape=False,
+                            border=0,
+                            table_id=f"table-{collection_name}",
+                        ),
+                        "plot_html": plot_html,
+                    }
+                )
 
-        context.update({
-            "title": f"GSEA: {gsea.title}",
-            "collections": collections,
-            "intersection_stats": results.get("intersection_stats", {}),
-            "metadata": {
-                "creation_date": gsea.created_at,
-                "reference_genome": gsea.reference_genome,
-                "foreground": gsea.foreground,
-                "background": gsea.background,
-                "annotated_foreground": gsea.annotated_foreground,
-                "annotated_background": gsea.annotated_background,
-                "universe_type": gsea.universe,
-                "minimum_overlap": gsea.minimum_overlap_required,
-                "significance_level": gsea.significance_level,
-                "correction_method": gsea.correction_method,
-                "same_strandedness": gsea.require_same_strandedness,
-            },
-        })
+        context.update(
+            {
+                "title": f"GSEA: {gsea.title}",
+                "collections": collections,
+                "intersection_stats": results.get("intersection_stats", {}),
+                "metadata": {
+                    "creation_date": gsea.created_at,
+                    "reference_genome": gsea.reference_genome,
+                    "foreground": gsea.foreground,
+                    "background": gsea.background,
+                    "annotated_foreground": gsea.annotated_foreground,
+                    "annotated_background": gsea.annotated_background,
+                    "universe_type": gsea.universe,
+                    "minimum_overlap": gsea.minimum_overlap_required,
+                    "significance_level": gsea.significance_level,
+                    "correction_method": gsea.correction_method,
+                    "same_strandedness": gsea.require_same_strandedness,
+                },
+            }
+        )
         return context
 
 
@@ -144,9 +155,7 @@ class GSEADeleteView(LoginRequiredMixin, DeleteView):
         """
         qs = super().get_queryset()
 
-        return qs.filter(
-            submitter=self.request.user
-        )
+        return qs.filter(submitter=self.request.user)
 
 
 class LOAView(LoginRequiredMixin, CreateView):
@@ -199,7 +208,7 @@ class LOADetailView(LoginRequiredMixin, DetailView):
                 # Add link to Term
                 subdf["name"] = subdf.apply(
                     lambda row: f'<a href="{reverse("genomic-feature-detail", args=[row["genomic_set_id"]])}">{row["name"]}</a>',
-                    axis=1
+                    axis=1,
                 )
                 subdf = subdf.drop("genomic_set_id", axis=1)
 
@@ -209,25 +218,29 @@ class LOADetailView(LoginRequiredMixin, DetailView):
                     classes="table table-sm table-striped datatable",
                     index=False,
                     border=0,
-                    escape=False
+                    escape=False,
                 )
 
-                collections.append({
-                    "name": name,
-                    "plot_html": fig_html,
-                    "table_html": table_html,
-                })
+                collections.append(
+                    {
+                        "name": name,
+                        "plot_html": fig_html,
+                        "table_html": table_html,
+                    }
+                )
 
-        context.update({
-            "title": f"LOA: {loa.title}",
-            "collections": collections,
-            "metadata": {
-                "creation_date": loa.created_at,
-                "foreground": loa.foreground,
-                "background": loa.background,
-            },
-            "universe": " | ".join([x.name for x in loa.universe.all()])
-        })
+        context.update(
+            {
+                "title": f"LOA: {loa.title}",
+                "collections": collections,
+                "metadata": {
+                    "creation_date": loa.created_at,
+                    "foreground": loa.foreground,
+                    "background": loa.background,
+                },
+                "universe": " | ".join([x.name for x in loa.universe.all()]),
+            }
+        )
 
         return context
 
@@ -263,7 +276,7 @@ class SOAView(LoginRequiredMixin, CreateView):
         soa.submitter = self.request.user
         soa.save()
 
-        soa_task.delay_on_commit(soa.id)
+        soa_task.delay_on_commit(soa.id, soa.study_type)
         messages.success(self.request, "SOA analysis has been submitted successfully!")
 
         return redirect("submitted-analyses")
@@ -281,17 +294,19 @@ class SOADetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         soa = self.object
 
-        context.update({
-            "title": f"SOA: {soa.title}",
-            "results": soa.results,
-            "metadata": {
-                "creation_date": soa.created_at,
-                "reference_genome": soa.reference_genome,
-                "foreground": soa.foreground,
-                "background": soa.background,
-                "significance_level": soa.significance_level,
-            },
-        })
+        context.update(
+            {
+                "title": f"SOA: {soa.title}",
+                "results": soa.results,
+                "metadata": {
+                    "creation_date": soa.created_at,
+                    "reference_genome": soa.reference_genome,
+                    "foreground": soa.foreground,
+                    "background": soa.background,
+                    "significance_level": soa.significance_level,
+                },
+            }
+        )
 
         return context
 

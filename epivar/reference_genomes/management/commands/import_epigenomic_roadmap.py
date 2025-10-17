@@ -10,7 +10,11 @@ from django.core.management.base import BaseCommand, CommandError
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from pybedtools import BedTool
 
-from reference_genomes.models import GenomicFeature, GenomicFeatureCollection, ReferenceGenome
+from reference_genomes.models import (
+    GenomicFeature,
+    GenomicFeatureCollection,
+    ReferenceGenome,
+)
 from ._private import download_file
 
 
@@ -211,7 +215,9 @@ class Command(BaseCommand):
     help = "Download, normalize, and import roadmap segmentations into per-state GenomicFeatures grouped by Collection"
 
     def add_arguments(self, parser):
-        parser.add_argument("--force", action="store_true", help="Overwrite existing features")
+        parser.add_argument(
+            "--force", action="store_true", help="Overwrite existing features"
+        )
 
     def handle(self, *args, **options):
         force = options["force"]
@@ -234,14 +240,22 @@ class Command(BaseCommand):
                     file_path = str(file_path)
                 except Exception as e:
                     # Skip if file is not found (e.g., 404)
-                    self.stdout.write(self.style.WARNING(f"Skipping {eid} ({cell_name}) {model_key}: {e}"))
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"Skipping {eid} ({cell_name}) {model_key}: {e}"
+                        )
+                    )
                     continue
 
                 # 2. Split into per-state records
                 state_records = defaultdict(list)
                 with gzip.open(file_path, "rt") as infile:
                     for line in infile:
-                        if line.startswith("#") or line.startswith("track") or line.strip() == "":
+                        if (
+                            line.startswith("#")
+                            or line.startswith("track")
+                            or line.strip() == ""
+                        ):
                             continue
                         parts = line.rstrip("\n").split("\t")
                         if parts[0].startswith("chr"):
@@ -273,7 +287,9 @@ class Command(BaseCommand):
                     try:
                         feature = GenomicFeature.objects.get(name=feature_name)
                         if not force:
-                            self.stdout.write(f"{feature.name} already exists, skipping ...")
+                            self.stdout.write(
+                                f"{feature.name} already exists, skipping ..."
+                            )
                             continue
                         else:
                             self.stdout.write(f"{feature.name} exists, overwriting ...")
@@ -295,11 +311,15 @@ class Command(BaseCommand):
                             out.write("\n".join(lines) + "\n")
 
                         features_bt = BedTool(bed_file)
-                        chromsizes_bt = BedTool(reference_genome.chrom_size_file_bed.path)
+                        chromsizes_bt = BedTool(
+                            reference_genome.chrom_size_file_bed.path
+                        )
 
                         intersection = features_bt.intersect(chromsizes_bt, u=True)
                         if features_bt.count() < intersection.count():
-                            raise ValidationError(f"File {bed_file} does not match {reference_genome.name}")
+                            raise ValidationError(
+                                f"File {bed_file} does not match {reference_genome.name}"
+                            )
 
                         self.stdout.write(f"Sorting + tabix {feature_name} ...")
                         sorted_bt = BedTool(bed_file).sort(header=True)
@@ -312,12 +332,20 @@ class Command(BaseCommand):
                         shutil.move(tabix_bt.fn + ".tbi", bed_tbi)
 
                         with open(bed_gz, "rb") as s, open(bed_tbi, "rb") as i:
-                            feature.file.save(os.path.basename(bed_gz), File(s), save=False)
-                            feature.file_index.save(os.path.basename(bed_tbi), File(i), save=False)
+                            feature.file.save(
+                                os.path.basename(bed_gz), File(s), save=False
+                            )
+                            feature.file_index.save(
+                                os.path.basename(bed_tbi), File(i), save=False
+                            )
 
                     feature.reference = cfg["reference"]
                     feature.reference_url = cfg["reference_url"]
                     feature.collection = collection
                     feature.save()
 
-                    self.stdout.write(self.style.SUCCESS(f"Imported {feature.name} into {collection.name}"))
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f"Imported {feature.name} into {collection.name}"
+                        )
+                    )

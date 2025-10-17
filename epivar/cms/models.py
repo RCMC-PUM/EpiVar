@@ -26,7 +26,7 @@ class ConsortiumMember(models.Model):
         upload_to=logo_upload_path,
         blank=True,
         null=True,
-        help_text="Upload institution logo (PNG/JPG/SVG)."
+        help_text="Upload institution logo (PNG/JPG/SVG).",
     )
 
     class Meta:

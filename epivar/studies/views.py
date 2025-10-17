@@ -8,9 +8,6 @@ from formtools.wizard.views import SessionWizardView
 from django.views.generic import ListView, DetailView, CreateView, DeleteView
 from pgvector.django import L2Distance
 from django.urls import reverse_lazy
-from plotly.io import from_json
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
 
 from reference_genomes.models import Assembly
 from studies.models import RecordStatus, IntegrationStatus
@@ -29,7 +26,8 @@ from .forms import (
     PlatformForm,
     PhenotypeForm,
     InvestigationForm,
-    SubmittedDataForm,
+    DataForm,
+    DataStorageForm
 )
 from .forms import (
     ProjectForm,
@@ -68,7 +66,8 @@ ASSOCIATION_STUDY_FORMS = [
     ("platform", PlatformForm),
     ("phenotype", PhenotypeForm),
     ("investigation_model", InvestigationForm),
-    ("submitted_data", SubmittedDataForm),
+    ("raw_data_storage", DataStorageForm),
+    ("submitted_data", DataForm),
 ]
 
 INTERACTION_STUDY_FORMS = [
@@ -76,8 +75,10 @@ INTERACTION_STUDY_FORMS = [
     ("biosample", BiosampleForm),
     ("sample", SampleForm),
     ("platform", PlatformForm),
+    ("phenotype", PhenotypeForm),
     ("investigation_model", InvestigationForm),
-    ("submitted_data", SubmittedDataForm),
+    ("raw_data_storage", DataStorageForm),
+    ("submitted_data", DataForm),
 ]
 
 PROFILING_STUDY_FORMS = [
@@ -85,7 +86,9 @@ PROFILING_STUDY_FORMS = [
     ("biosample", BiosampleForm),
     ("sample", SampleForm),
     ("platform", PlatformForm),
-    ("submitted_data", SubmittedDataForm),
+    ("phenotype", PhenotypeForm),
+    ("raw_data_storage", DataStorageForm),
+    ("submitted_data", DataForm),
 ]
 
 TEMPLATES = {
@@ -205,9 +208,18 @@ class StudiesView(ListView):
     context_object_name = "studies"
 
     def get_queryset(self):
-        profiling = ProfilingStudy.objects.filter(record_status=RecordStatus.ACTIVE, integration_status=IntegrationStatus.PASSED)
-        association = AssociationStudy.objects.filter(record_status=RecordStatus.ACTIVE, integration_status=IntegrationStatus.PASSED)
-        interaction = InteractionStudy.objects.filter(record_status=RecordStatus.ACTIVE, integration_status=IntegrationStatus.PASSED)
+        profiling = ProfilingStudy.objects.filter(
+            record_status=RecordStatus.ACTIVE,
+            integration_status=IntegrationStatus.PASSED,
+        )
+        association = AssociationStudy.objects.filter(
+            record_status=RecordStatus.ACTIVE,
+            integration_status=IntegrationStatus.PASSED,
+        )
+        interaction = InteractionStudy.objects.filter(
+            record_status=RecordStatus.ACTIVE,
+            integration_status=IntegrationStatus.PASSED,
+        )
 
         return [*profiling, *association, *interaction]
 
@@ -334,12 +346,16 @@ class StudyDetailMixin(LoginRequiredMixin, DetailView):
             hg38 = datasets.filter(reference_genome__name=Assembly.HG38).first()
 
             ctx.update({"datasets": datasets})
-            ctx.update({"qq": plotly_html_from_json(hg38.plots.get("qq")),
-                        "mh": plotly_html_from_json(hg38.plots.get("mh")),
-                        "an": plotly_html_from_json(hg38.plots.get("an"))})
+            ctx.update(
+                {
+                    "qq": plotly_html_from_json(hg38.plots.get("qq")),
+                    "mh": plotly_html_from_json(hg38.plots.get("mh")),
+                    "an": plotly_html_from_json(hg38.plots.get("an")),
+                    "vl": plotly_html_from_json(hg38.plots.get("vl"))
+                }
+            )
 
             ctx["similar_studies"] = self.similarity_search()
-
         return ctx
 
 

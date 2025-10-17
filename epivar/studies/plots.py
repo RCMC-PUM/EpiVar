@@ -1,14 +1,16 @@
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 import plotly.io as pio
+import plotly.express as px
+import plotly.graph_objects as go
+import dash_bio as dashbio
 
 
 def qq(
         path: str,
         pval_column: str = "p-value",
         name_col: str = "name",
-        sample: int = 10_000,
+        sample: int = 25_000,
 ) -> str:
     """
     Load a TSV file, extract the p-value column, draw a QQ-plot
@@ -71,14 +73,16 @@ def qq(
         )
     )
 
-    fig.add_trace(go.Scatter(
-        x=[1.5],
-        y=[3],
-        mode="text",
-        name="λ=Inflation factor",
-        text=[f"λ={inflation_factor:2f}"],
-        textposition="top center"
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=[1.5],
+            y=[3],
+            mode="text",
+            name="λ=Inflation factor",
+            text=[f"λ={inflation_factor:2f}"],
+            textposition="top center",
+        )
+    )
 
     fig.update_layout(
         xaxis_title="-log10(Expected p-value)",
@@ -89,18 +93,117 @@ def qq(
     return pio.to_json(fig, validate=True)
 
 
-def manhattan(
+def prepare_for_manhattan(path: str, n: int = 25_000) -> pd.DataFrame:
+    """
+    Prepare GWAS-style TSV/CSV into dataframe for dash_bio.ManhattanPlot.
+    Required columns → CHR:int (1-25), BP:int, P:float
+    Optional extras (e.g. name, es) are merged into annotation text.
+    """
+    df = pd.read_csv(path, sep="\t").dropna()
+    df = df.sample(n=n, random_state=101)
+
+    # Rename columns to expected
+    col_map = {"#chrom": "CHR", "start": "BP", "p-value": "P"}
+    df = df.rename(columns={c: col_map[c] for c in df.columns if c in col_map})
+
+    # Map chromosomes to numeric (X=23, Y=24, MT=25)
+    chrom_map = {str(i): i for i in range(1, 23)}
+    chrom_map.update({"X": 23, "Y": 24, "MT": 25, "M": 25})
+    df["CHR"] = df["CHR"].astype(str).map(chrom_map)
+
+    # Ensure correct types
+    df = df.dropna(subset=["CHR", "BP", "P"]).copy()
+    df["CHR"] = df["CHR"].astype(int)
+    df["BP"] = df["BP"].astype(int)
+    df["P"] = df["P"].astype(float)
+
+    # Build hover/annotation text
+    parts = []
+    if "name" in df.columns:
+        parts.append("name: " + df["name"].astype(str))
+    if "P" in df.columns:
+        parts.append("p-value: " + df["P"].map("{:.2e}".format))
+    if "es" in df.columns:
+        parts.append("effect size: " + df["es"].map("{:.3f}".format))
+
+    if parts:
+        df["name"] = pd.concat(parts, axis=1).agg(" | ".join, axis=1)
+    else:
+        df["name"] = df.index.astype(str)
+
+    # Sort so traces are created in natural order
+    df = df.sort_values(["CHR", "BP"]).reset_index(drop=True)
+    return df[["CHR", "BP", "P", "name"]]
+
+
+def relabel_from_traces(fig):
+    """
+    Read x-ranges from traces, compute chromosome midpoints,
+    and relabel axis ticks as chr1..chr22, chrX, chrY, chrMT.
+    """
+    tickvals, ticktext = [], []
+
+    for tr in fig.data:
+        if not hasattr(tr, "x") or tr.x is None or len(tr.x) == 0:
+            continue
+
+        mid = (min(tr.x) + max(tr.x)) / 2
+        tickvals.append(mid)
+
+        name = tr.name if hasattr(tr, "name") else ""
+        label = name
+        if isinstance(name, str) and name.lower().startswith("chr"):
+            try:
+                n = int(name[3:])
+                if 1 <= n <= 22:
+                    label = f"chr{n}"
+                elif n == 23:
+                    label = "chrX"
+                elif n == 24:
+                    label = "chrY"
+                elif n == 25:
+                    label = "chrMT"
+            except ValueError:
+                pass
+        ticktext.append(label)
+
+    fig.update_layout(
+        xaxis=dict(
+            tickmode="array",
+            tickvals=tickvals,
+            ticktext=ticktext
+        )
+    )
+    return fig
+
+
+def manhattan(path: str, n: int = 25_000):
+    """
+    Build and show a Manhattan plot from a GWAS-style file.
+    """
+    df = prepare_for_manhattan(path, n)
+    fig = dashbio.ManhattanPlot(
+        dataframe=df,
+        snp=None,
+        gene=None,
+        title=None,
+        annotation="name",  # hover/annotation text
+        showlegend=False,
+        genomewideline_value=-np.log10(5e-8),
+        suggestiveline_value=None,
+    )
+    fig = relabel_from_traces(fig)
+    return fig.to_json(validate=True)
+
+
+def violin(
         path: str,
         chr_col: str = "#chrom",
-        pos_col: str = "start",
-        name_col: str = "name",
-        value_col: str = "-log10(p-value)",
-        metric: str = "-log10(p-value)",  # "me" | "se" | "-log10(p-value)"
-        genomewide_line: float | None = -np.log10(5e-08),
+        value_col: str = "me",
         sample: int = 25_000,
-) -> str:
+):
     """
-    Manhattan-style scatter plot.
+    Boxplot plotly.express.
 
     Parameters
     ----------
@@ -108,226 +211,43 @@ def manhattan(
         Path to TSV file.
     chr_col : str
         Chromosome column name.
-    pos_col : str
-        Position column name.
     value_col : str
-        Column with numeric values.
-    name_col : str
-        Column with labels (hover text).
-    metric : str
-        Which metric to plot on y-axis:
-        - "me" → log(mean values)
-        - "se"   → log(Standard Error)
-        - "-log10(p-value)" → classic Manhattan
-    genomewide_line : float | None
-        Y-value for genome-wide significance line (only for p-values).
+        Column with numeric values (mean).
     sample : int
         Number of points to subsample for plotting.
     """
-    usecols = [chr_col, pos_col, value_col, name_col]
-    df = pd.read_csv(
-        path,
-        sep="\t",
-        usecols=usecols,
-        engine="pyarrow",
-        dtype={
-            "chr_col": "string",
-            "pos_col": "int64",
-            "value_col": "float64",
-            "name_col": "string",
-        },
-    ).dropna()
+    usecols = [chr_col, value_col]
+    df = pd.read_csv(path, sep="\t", usecols=usecols, engine="pyarrow").dropna()
 
+    # Downsample if needed
     if len(df) > sample:
         df = df.sample(n=sample, random_state=101)
 
-    # Normalize chromosome column
-    df[chr_col] = df[chr_col].astype(str).replace({"X": 23, "Y": 24, "MT": 25})
-    df[chr_col] = pd.to_numeric(df[chr_col], errors="coerce")
-    df = df.dropna(subset=[chr_col, pos_col, value_col]).copy()
-    df = df.sort_values([chr_col, pos_col])
+    # Standardize chromosome labels with "chr" prefix
+    df[chr_col] = df[chr_col].astype(str)
+    df[chr_col] = df[chr_col].map(lambda x: f"chr{x}")
 
-    # Compute Y values
-    if metric == "me":
-        y_title = "Mean value"
-        hover_y = "Mean value: %{y:.2f}"
-        df["yval"] = df[value_col]
+    # Define correct chromosome order
+    chr_order = [f"chr{i}" for i in range(1, 23)] + ["chrX", "chrY", "chrMT"]
 
-    elif metric == "se":
-        y_title = "-log10(standard error)"
-        hover_y = "-log10(standard error): %{y:.2f}"
-        df["yval"] = -np.log(df[value_col])
+    # Restrict to chromosomes we know
+    df = df[df[chr_col].isin(chr_order)]
 
-    elif metric == "-log10(p-value)":
-        y_title = "-log10(p-value)"
-        hover_y = "-log10(p): %{y:.2f}"
-        df["yval"] = -np.log(df[value_col])
+    # Make column categorical with correct order
+    df[chr_col] = pd.Categorical(df[chr_col], categories=chr_order, ordered=True)
 
-    else:
-        raise ValueError("metric must be 'mean', 'se', or '-log10(p-value)'")
-
-    # Compute cumulative positions
-    ticks, labels, offsets = [], [], {}
-    cumulative = 0
-    for chrom in sorted(df[chr_col].unique()):
-        offsets[chrom] = cumulative
-        chrom_max = df.loc[df[chr_col] == chrom, pos_col].max()
-        ticks.append(cumulative + chrom_max / 2)
-        labels.append(int(chrom))
-        cumulative += chrom_max
-
-    df["pos_cum"] = df.apply(lambda r: r[pos_col] + offsets[r[chr_col]], axis=1)
-    mapper = {23: "X", 24: "Y", 25: "MT"}
-
-    # Plot
-    fig = go.Figure()
-    for i, chrom in enumerate(labels):
-        dff = df[df[chr_col] == chrom]
-        chrom_label = mapper.get(chrom, chrom)
-
-        fig.add_trace(
-            go.Scattergl(
-                x=dff["pos_cum"],
-                y=dff["yval"],
-                mode="markers",
-                marker=dict(color="blue" if i % 2 == 0 else "gray", size=4),
-                name=f"chr{chrom_label}",
-                text=dff[name_col],
-                hovertemplate=(
-                    "%{text}<br>"
-                    f"chr{chrom_label}<br>"
-                    "Position: %{x}<br>"
-                    f"{hover_y}"
-                ),
-            )
-        )
-
-    labels = [f"chr{mapper[x]}" if x in mapper else f"chr{int(x)}" for x in labels]
-
+    # Plot violin
+    fig = px.violin(df, box=True, x=chr_col, y=value_col, category_orders={chr_col: chr_order})
     fig.update_layout(
         xaxis=dict(
             title="Chromosome",
-            tickmode="array",
-            tickvals=ticks,
-            ticktext=labels,
-            showticklabels=True,
         ),
-        yaxis=dict(title=y_title),
+        yaxis=dict(title="Mean values"),
         template="plotly_white",
         showlegend=False,
         margin=dict(l=60, r=20, t=20, b=60),
     )
-
-    # Genome-wide significance line (only for p-value metric)
-    if metric == "-log10(p-value)" and genomewide_line is not None:
-        fig.add_hline(
-            y=genomewide_line,
-            line=dict(color="red", dash="dash"),
-            annotation_text="5 × 10⁻⁸",
-            annotation_position="top left",
-        )
-
-    return pio.to_json(fig, validate=True)
-
-
-def heatmap(
-    path: str,
-    chr_col: str = "#chrom",
-    pos_col: str = "start",
-    name_col: str = "name",
-    value_col: str = "pval",
-    metric: str = "me",
-    sample: int = 25_000,
-):
-    """
-    Manhattan-style plot using plotly.express.
-
-    Parameters
-    ----------
-    path : str
-        Path to TSV file.
-    chr_col : str
-        Chromosome column name.
-    pos_col : str
-        Position column name.
-    value_col : str
-        Column with numeric values (pval, mean, or SE).
-    name_col : str
-        Column with labels (hover text).
-    metric : str
-        Which metric to plot on y-axis:
-        - "me" → mean values
-        - "se" → -log(standard error)
-        - "-log10(p-value)" → classic Manhattan
-    genomewide_line : float | None
-        Y-value for genome-wide significance line (only for p-values).
-    sample : int
-        Number of points to subsample for plotting.
-    """
-
-    usecols = [chr_col, pos_col, value_col, name_col]
-    df = pd.read_csv(path, sep="\t", usecols=usecols, engine="pyarrow").dropna()
-
-    if len(df) > sample:
-        df = df.sample(n=sample, random_state=101)
-
-    # Normalize chromosome identifiers
-    df[chr_col] = df[chr_col].astype(str).replace({"X": 23, "Y": 24, "MT": 25})
-    df[chr_col] = pd.to_numeric(df[chr_col], errors="coerce")
-    df = df.dropna(subset=[chr_col, pos_col, value_col]).copy()
-    df = df.sort_values([chr_col, pos_col])
-
-    df["yval"] = df[value_col]
-
-    # Compute cumulative positions
-    ticks, labels, offsets = [], [], {}
-    cumulative = 0
-    for chrom in sorted(df[chr_col].unique()):
-        offsets[chrom] = cumulative
-        chrom_max = df.loc[df[chr_col] == chrom, pos_col].max()
-        ticks.append(cumulative + chrom_max / 2)
-        labels.append(int(chrom))
-        cumulative += chrom_max
-
-    df["pos_cum"] = df.apply(lambda r: r[pos_col] + offsets[r[chr_col]], axis=1)
-    df["chrom_label"] = df[chr_col].fillna(df[chr_col].astype(int).astype(str))
-
-    # Plot using plotly.express
-    fig = px.scatter(
-        df,
-        x="pos_cum",
-        y="yval",
-        color="chrom_label",
-        hover_data={name_col: True, pos_col: True, chr_col: True},
-        title="Manhattan Plot",
-        labels={"yval": y_title, "pos_cum": "Genomic position"},
-    )
-
-    # Adjust layout
-    fig.update_traces(marker=dict(size=4), selector=dict(mode="markers"))
-    fig.update_layout(
-        xaxis=dict(
-            tickmode="array",
-            tickvals=ticks,
-            ticktext=[f"chr{mapper.get(x, int(x))}" for x in labels],
-            title="Chromosome"
-        ),
-        yaxis=dict(title=y_title),
-        template="plotly_white",
-        showlegend=False,
-        margin=dict(l=60, r=20, t=20, b=60),
-    )
-
-    # Genome-wide significance line
-    if metric == "-log10(p-value)" and genomewide_line is not None:
-        fig.add_hline(
-            y=genomewide_line,
-            line=dict(color="red", dash="dash"),
-            annotation_text="5 × 10⁻⁸",
-            annotation_position="top left",
-        )
-
-    return fig
+    return fig.to_json(validate=True)
 
 
 def bar(data: dict[str, int], title: str = "") -> str:

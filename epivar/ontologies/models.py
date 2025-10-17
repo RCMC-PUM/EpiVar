@@ -25,7 +25,6 @@ class Ontology(models.Model):
 
     class Meta:
         verbose_name_plural = "Ontology terms"
-        ordering = ["-created_at"]
         abstract = True
 
     def __str__(self):
@@ -35,6 +34,7 @@ class Ontology(models.Model):
 class AnatomicalStructure(Ontology):
     class Meta:
         verbose_name_plural = "Anatomical structures"
+        ordering = ["label"]
 
 
 class CellType(Ontology):
@@ -46,6 +46,7 @@ class CellType(Ontology):
 
     class Meta:
         verbose_name_plural = "Cell types"
+        ordering = ["label"]
 
 
 class TermCategory(models.TextChoices):
@@ -66,3 +67,4 @@ class Term(Ontology):
 
     class Meta:
         verbose_name_plural = "Experiment Terms"
+        ordering = ["label"]

@@ -1,5 +1,4 @@
 import os
-import random
 from django.db import models
 from pgvector.django import VectorField
 from polymorphic.models import PolymorphicModel
@@ -8,8 +7,8 @@ from django_celery_results.models import TaskResult
 from django.core.validators import MinValueValidator
 from django.core.files.storage import FileSystemStorage
 
-from reference_genomes.models import ReferenceGenome
 from ontologies.models import AnatomicalStructure, CellType, Term
+from reference_genomes.models import ReferenceGenome
 from users.models import User
 
 ####################
@@ -119,10 +118,18 @@ class Project(TimestampedModel):
 
 class Biosample(models.Model):
     tissue = models.ForeignKey(
-        AnatomicalStructure, on_delete=models.PROTECT, related_name="+"
+        AnatomicalStructure, on_delete=models.PROTECT, related_name="+",
     )
     cell = models.ForeignKey(
-        CellType, on_delete=models.PROTECT, null=True, blank=True, related_name="+"
+        CellType, on_delete=models.PROTECT, null=True, blank=True, related_name="+",
+    )
+    cell_line = models.ForeignKey(
+        Term,
+        on_delete=models.PROTECT,
+        limit_choices_to={"category": "cell_line"},
+        related_name="+",
+        null=True,
+        blank=True
     )
     analyte = models.ForeignKey(
         Term,
@@ -236,7 +243,10 @@ class Study(PolymorphicModel, TimestampedModel):
     sample_processing_description = models.TextField(max_length=1000)
 
     data_processing_description = models.TextField(max_length=1000)
-    embedding = models.OneToOneField(Embedding, on_delete=models.CASCADE, editable=False, null=True, blank=True)
+    embedding = models.OneToOneField(
+        Embedding, on_delete=models.CASCADE, editable=False, null=True, blank=True
+    )
+    raw_data_storage = models.OneToOneField(DataStorage, on_delete=models.CASCADE, null=True, blank=True)
 
     integration_task = models.ForeignKey(
         TaskResult,
@@ -321,6 +331,7 @@ class InteractionStudy(Study):
     sample = models.OneToOneField(Sample, on_delete=models.CASCADE, null=True)
 
     platform = models.OneToOneField(Platform, on_delete=models.CASCADE, null=True)
+    phenotype = models.OneToOneField(Phenotype, on_delete=models.CASCADE, null=True, blank=True)
     investigation_model = models.OneToOneField(
         Investigation, on_delete=models.CASCADE, null=True
     )
@@ -355,6 +366,7 @@ class ProfilingStudy(Study):
     platform = models.OneToOneField(Platform, on_delete=models.CASCADE, null=True)
     sample = models.OneToOneField(Sample, on_delete=models.CASCADE, null=True)
 
+    phenotype = models.OneToOneField(Phenotype, on_delete=models.CASCADE, null=True, blank=True)
     submitted_data = models.OneToOneField(
         StudyData, on_delete=models.CASCADE, related_name="sd_profiling_study"
     )

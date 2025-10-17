@@ -18,9 +18,13 @@ from reference_genomes.models import GeneSet, GeneSetCollection
 from datasets.models import AssociationData, InteractionData, ProfilingData
 
 from studies.models import (
-    AssociationStudy, InteractionStudy, ProfilingStudy,
-    IntegrationStatus, RecordStatus
+    AssociationStudy,
+    InteractionStudy,
+    ProfilingStudy,
+    IntegrationStatus,
+    RecordStatus,
 )
+from .models import SOA
 from .utils import _clean_loa_table, _clean_gsea_table
 from .data_models import BEDRecord, GeneListRecord, validate_file
 
@@ -29,36 +33,59 @@ from .data_models import BEDRecord, GeneListRecord, validate_file
 # HELPER FUNCTIONS
 # =========================================================
 
+
 def _annotate_bed(
-        bed_file, reference, feature_type: str = "gene",
-        n_closest: int = 1, max_distance: int = 0,
-        require_same_strandedness: bool = False
+    bed_file,
+    reference,
+    feature_type: str = "gene",
+    n_closest: int = 1,
+    max_distance: int = 0,
+    require_same_strandedness: bool = False,
 ):
     """Annotate a BED file against the reference GFF."""
     gff = pybedtools.BedTool(reference.annotations_file.path)
     bed = pybedtools.BedTool(bed_file.path)
 
-    annotations = bed.sort(header=True).closest(
-        gff, d=True, k=n_closest, s=require_same_strandedness
-    ).to_dataframe()
+    annotations = (
+        bed.sort(header=True)
+        .closest(gff, d=True, k=n_closest, s=require_same_strandedness)
+        .to_dataframe()
+    )
 
     bed_headers = pd.read_table(bed_file.path, nrows=1).columns.tolist()
     gff_headers = [
-        "seqname", "source", "feature", "feature_start", "feature_end",
-        "feature_score", "feature_strand", "frame", "attributes",
+        "seqname",
+        "source",
+        "feature",
+        "feature_start",
+        "feature_end",
+        "feature_score",
+        "feature_strand",
+        "frame",
+        "attributes",
     ]
     annotations.columns = [*bed_headers, *gff_headers, "distance"]
     annotations = annotations[
-        [*bed_headers, "seqname", "feature_start", "feature_end", "feature_strand",
-         "feature", "attributes", "distance"]
+        [
+            *bed_headers,
+            "seqname",
+            "feature_start",
+            "feature_end",
+            "feature_strand",
+            "feature",
+            "attributes",
+            "distance",
+        ]
     ]
 
     annotations = annotations[
         (annotations.feature == feature_type) & (annotations.distance <= max_distance)
-        ]
+    ]
 
     if annotations.empty:
-        raise ValueError("Cannot annotate provided data, returned empty frame, try to relax annotation conditions.")
+        raise ValueError(
+            "Cannot annotate provided data, returned empty frame, try to relax annotation conditions."
+        )
 
     return annotations
 
@@ -81,7 +108,7 @@ def _save_annotations(annotations, instance, field_name, original_name):
         getattr(instance, field_name).save(
             f"{os.path.basename(original_name)}.annotated.bed",
             File(open(tmp.name, "rb")),
-            save=False
+            save=False,
         )
 
 
@@ -119,9 +146,13 @@ def _compute_intersection_with_reference(instance, reference):
 
     if instance.background:
         background_bed = pybedtools.BedTool(instance.background.path)
-        fg_bg_intersection = foreground_bed.intersect(background_bed, header=True).count()
+        fg_bg_intersection = foreground_bed.intersect(
+            background_bed, header=True
+        ).count()
         if fg_bg_intersection < fg_total:
-            raise ValidationError(f"Foreground is not a subset of background! Intersection: {fg_bg_intersection}, but total: {fg_total}")
+            raise ValidationError(
+                f"Foreground is not a subset of background! Intersection: {fg_bg_intersection}, but total: {fg_total}"
+            )
 
         bg_intersection = background_bed.intersect(reference_bed, u=True).count()
         bg_total = background_bed.count()
@@ -150,15 +181,19 @@ def parse_gene_list(path_to_file):
 # STEP FUNCTIONS (PIPELINE STAGES)
 # =========================================================
 
+
 def step_annotate_and_extract_foreground(instance, reference):
     """Annotate foreground and extract genes."""
     fg_annotations = _annotate_bed(
-        instance.foreground, reference,
+        instance.foreground,
+        reference,
         n_closest=1,
         max_distance=instance.minimum_overlap_required,
-        require_same_strandedness=instance.require_same_strandedness
+        require_same_strandedness=instance.require_same_strandedness,
     )
-    _save_annotations(fg_annotations, instance, "annotated_foreground", instance.foreground.name)
+    _save_annotations(
+        fg_annotations, instance, "annotated_foreground", instance.foreground.name
+    )
     return _extract_genes(fg_annotations)
 
 
@@ -166,9 +201,12 @@ def step_annotate_and_extract_background(instance, reference):
     """Annotate background (if any) or fallback to universe."""
     if instance.background:
         bg_annotations = _annotate_bed(
-            instance.background, reference,
+            instance.background,
+            reference,
         )
-        _save_annotations(bg_annotations, instance, "annotated_background", instance.background.name)
+        _save_annotations(
+            bg_annotations, instance, "annotated_background", instance.background.name
+        )
         return _extract_genes(bg_annotations)
     else:
         return _fallback_background(reference)
@@ -179,7 +217,11 @@ def run_gsea_enrichment(fg_genes, bg_genes: list, universe: str | None = None):
     eps = np.nextafter(0, 1)
     results = []
 
-    collections = [c for c in GeneSetCollection if c == universe] if universe else GeneSetCollection
+    collections = (
+        [c for c in GeneSetCollection if c == universe]
+        if universe
+        else GeneSetCollection
+    )
 
     for collection in collections:
         gene_sets_in_collection = {
@@ -187,8 +229,7 @@ def run_gsea_enrichment(fg_genes, bg_genes: list, universe: str | None = None):
             for obj in GeneSet.objects.filter(collection=collection)
         }
         mapping = {
-            obj.name: obj.id
-            for obj in GeneSet.objects.filter(collection=collection)
+            obj.name: obj.id for obj in GeneSet.objects.filter(collection=collection)
         }
 
         res = gp.enrich(
@@ -258,7 +299,9 @@ def locus_overlap_with_bg(fg, bg, ref, alternative="two-sided") -> dict:
     }
 
 
-def locus_overlap_with_shuffle(fg, ref, genome, permutations=1000, alternative="two-sided") -> dict:
+def locus_overlap_with_shuffle(
+    fg, ref, genome, permutations=1000, alternative="two-sided"
+) -> dict:
     """
     Locus overlap analysis when no background is provided.
     Uses shuffled foreground intervals as null background.
@@ -270,8 +313,7 @@ def locus_overlap_with_shuffle(fg, ref, genome, permutations=1000, alternative="
     fg_overlap = len(fg.intersect(ref, u=True))
 
     shuffle_overlaps = [
-        len(fg.shuffle(g=genome).intersect(ref, u=True))
-        for _ in range(permutations)
+        len(fg.shuffle(g=genome).intersect(ref, u=True)) for _ in range(permutations)
     ]
 
     mean_bg_overlap = np.mean(shuffle_overlaps)
@@ -305,7 +347,9 @@ def _filter_studies(data_class, request, category, pval: float | None = None):
 
     results = []
     for study_data in data_class.objects.filter(reference_genome=ref).all():
-        ovp = pybedtools.BedTool(study_data.data.path).intersect(request_bed, u=True, header=True)
+        ovp = pybedtools.BedTool(study_data.data.path).intersect(
+            request_bed, u=True, header=True
+        )
 
         if pval:
             ovp = ovp.to_dataframe(disable_auto_names=True)
@@ -340,7 +384,6 @@ def _filter_studies(data_class, request, category, pval: float | None = None):
 # =========================================================
 # TASKS
 # =========================================================
-
 @shared_task(bind=True)
 def gsea_task(self, gsea_id, universe=None):
     """Main GSEA pipeline task."""
@@ -393,7 +436,11 @@ def loa_task(self, loa_id):
         for genomic_set in collection.features.all():
             try:
                 ref = genomic_set.file.path
-                stats = {"collection": collection.name, "name": genomic_set.name, "genomic_set_id": genomic_set.id}
+                stats = {
+                    "collection": collection.name,
+                    "name": genomic_set.name,
+                    "genomic_set_id": genomic_set.id,
+                }
 
                 if instance.background:
                     bg = pybedtools.BedTool(instance.background.path)
@@ -427,7 +474,7 @@ def loa_task(self, loa_id):
 
 
 @shared_task(bind=True)
-def soa_task(self, soa_id):
+def soa_task(self, soa_id, study_type):
     """Main SOA pipeline task."""
     SOA = apps.get_model("analyses", "SOA")
     instance = SOA.objects.get(id=soa_id)
@@ -435,10 +482,21 @@ def soa_task(self, soa_id):
     instance = _attach_task(instance, self.request.id)
     validate_file(instance.foreground.path, BEDRecord)
 
-    association_data = _filter_studies(AssociationData, instance, "Association data", instance.significance_level)
-    interaction_data = _filter_studies(InteractionData, instance, "Interaction data", instance.significance_level)
-    profiling_data = _filter_studies(ProfilingData, instance, "Profiling data")
+    if study_type == SOA.StudyType.ASSOCIATION:
+        data = _filter_studies(
+            AssociationData, instance, "Association data", instance.significance_level
+        )
 
-    results = [*association_data, *interaction_data, *profiling_data]
-    instance.results = results
+    elif study_type == SOA.StudyType.INTERACTION:
+        data = _filter_studies(
+            InteractionData, instance, "Interaction data", instance.significance_level
+        )
+
+    elif study_type == SOA.StudyType.PROFILING:
+        data = _filter_studies(ProfilingData, instance, "Profiling data")
+
+    else:
+        raise ValidationError(f"Not supported study type")
+
+    instance.results = data
     instance.save(update_fields=["results"])

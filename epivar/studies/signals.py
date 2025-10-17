@@ -98,12 +98,16 @@ def integrate_association_data(sender, instance, **kwargs):
         | intersection_task.si(study_model_name, instance.id)
         | adjust_pvalue_task.si(study_model_name, instance.id)
         # Move study data to Data object and lift over
-        | move_from_study_to_data_task.si(study_model_name, instance.id, data_model_name)
+        | move_from_study_to_data_task.si(
+            study_model_name, instance.id, data_model_name
+        )
         | liftover_task.si(study_model_name, instance.id, data_model_name)
         # Sort, bgzip and index
         | sort_and_index_task.si(study_model_name, instance.id, data_model_name)
         | annotate_file_task.si(study_model_name, instance.id, data_model_name)
-        | generate_association_study_plots.si(study_model_name, instance.id, data_model_name)
+        | generate_association_study_plots.si(
+            study_model_name, instance.id, data_model_name
+        )
     )
 
     workflow.apply_async(
@@ -128,11 +132,15 @@ def integrate_profiling_data(sender, instance, **kwargs):
         # Preprocess study submitted data
         | intersection_task.si(study_model_name, instance.id)
         # Move study data to Data object and lift over
-        | move_from_study_to_data_task.si(study_model_name, instance.id, data_model_name)
+        | move_from_study_to_data_task.si(
+            study_model_name, instance.id, data_model_name
+        )
         | liftover_task.si(study_model_name, instance.id, data_model_name)
         # Sort, bgzip and index
         | sort_and_index_task.si(study_model_name, instance.id, data_model_name)
-        | generate_profiling_study_plots.si(study_model_name, instance.id, data_model_name)
+        | generate_profiling_study_plots.si(
+            study_model_name, instance.id, data_model_name
+        )
     )
 
     workflow.apply_async(
@@ -165,7 +173,9 @@ def integrate_interaction_data(sender, instance, **kwargs):
         # Sort, bgzip and index
         | sort_and_index_task.si(study_model_name, instance.id, data_model_name)
         | annotate_file_task.si(study_model_name, instance.id, data_model_name)
-        | generate_interaction_study_plots.si(study_model_name, instance.id, data_model_name)
+        | generate_interaction_study_plots.si(
+            study_model_name, instance.id, data_model_name
+        )
     )
 
     workflow.apply_async(

@@ -5,7 +5,7 @@ from django.urls import reverse_lazy
 
 from ontologies.models import AnatomicalStructure, CellType, Term, TermCategory
 from .models import Project, AssociationStudy, InteractionStudy, ProfilingStudy
-from .models import Biosample, Sample, Platform, Phenotype, Investigation, StudyData
+from .models import Biosample, Sample, Platform, Phenotype, Investigation, StudyData, DataStorage
 
 
 class ProjectForm(ModelForm):
@@ -90,7 +90,7 @@ class AssociationStudyForm(ModelForm):
 class InteractionStudyForm(ModelForm):
     class Meta:
         model = InteractionStudy
-        fields = study_form_fields
+        fields = [*study_form_fields, "interaction_type"]
         help_texts = study_form_help_text
         widgets = study_form_widgets
 
@@ -125,6 +125,20 @@ class BiosampleForm(ModelForm):
                 },
                 dependent_fields={"cell": "cell_types"},
             ),
+            "cell_line": AddAnotherWidgetWrapper(
+                ModelSelect2Widget(
+                    model=Term,
+                    search_fields=["label__icontains"],
+                    attrs={
+                        "data-minimum-input-length": 0,
+                        "data-placeholder": "Search for cell line  ...",
+                        "data-field-name": "cell_line",
+                    },
+                ),
+                add_related_url=reverse_lazy(
+                    "add-term", kwargs={"category": TermCategory.CELL_LINE}
+                )
+            ),
             "analyte": AddAnotherWidgetWrapper(
                 ModelSelect2Widget(
                     model=Term,
@@ -135,7 +149,9 @@ class BiosampleForm(ModelForm):
                         "data-field-name": "analyte",
                     },
                 ),
-                add_related_url=reverse_lazy("add-term", kwargs={"category": TermCategory.ANALYTE}),
+                add_related_url=reverse_lazy(
+                    "add-term", kwargs={"category": TermCategory.ANALYTE}
+                ),
             ),
         }
         help_texts = {
@@ -155,6 +171,16 @@ class SampleForm(ModelForm):
         }
 
 
+class DataStorageForm(ModelForm):
+    class Meta:
+        model = DataStorage
+        fields = ["raw_data_storage", "raw_data_accession_number"]
+        help_texts = {
+            "raw_data_storage": "Raw data holder e.g. GEO",
+            "raw_data_accession_number": "Raw data accession number e.g GSE222927"
+        }
+
+
 class PlatformForm(ModelForm):
     class Meta:
         model = Platform
@@ -169,7 +195,9 @@ class PlatformForm(ModelForm):
                         "data-placeholder": "Search for platform type ...",
                     },
                 ),
-                add_related_url=reverse_lazy("add-term", kwargs={"category": TermCategory.PLATFORM}),
+                add_related_url=reverse_lazy(
+                    "add-term", kwargs={"category": TermCategory.PLATFORM}
+                ),
             ),
             "assay": AddAnotherWidgetWrapper(
                 ModelSelect2Widget(
@@ -180,7 +208,9 @@ class PlatformForm(ModelForm):
                         "data-placeholder": "Search for assay type ...",
                     },
                 ),
-                add_related_url=reverse_lazy("add-term", kwargs={"category": TermCategory.ASSAY}),
+                add_related_url=reverse_lazy(
+                    "add-term", kwargs={"category": TermCategory.ASSAY}
+                ),
             ),
             "target": AddAnotherWidgetWrapper(
                 ModelSelect2Widget(
@@ -191,7 +221,9 @@ class PlatformForm(ModelForm):
                         "data-placeholder": "Search for target type ...",
                     },
                 ),
-                add_related_url=reverse_lazy("add-term", kwargs={"category": TermCategory.TARGET}),
+                add_related_url=reverse_lazy(
+                    "add-term", kwargs={"category": TermCategory.TARGET}
+                ),
             ),
         }
         help_texts = {
@@ -215,7 +247,9 @@ class PhenotypeForm(ModelForm):
                         "data-placeholder": "Search for HPO tag ...",
                     },
                 ),
-                add_related_url=reverse_lazy("add-term", kwargs={"category": TermCategory.PHENOTYPE}),
+                add_related_url=reverse_lazy(
+                    "add-term", kwargs={"category": TermCategory.PHENOTYPE}
+                ),
             )
         }
         help_texts = {
@@ -237,7 +271,9 @@ class InvestigationForm(ModelForm):
                         "data-placeholder": "Search for ontology ...",
                     },
                 ),
-                add_related_url=reverse_lazy("add-term", kwargs={"category": TermCategory.INVESTIGATION_MODEL}),
+                add_related_url=reverse_lazy(
+                    "add-term", kwargs={"category": TermCategory.INVESTIGATION_MODEL}
+                ),
             ),
             "statistical_test": AddAnotherWidgetWrapper(
                 ModelSelect2Widget(
@@ -248,7 +284,9 @@ class InvestigationForm(ModelForm):
                         "data-placeholder": "Search for ontology ...",
                     },
                 ),
-                add_related_url=reverse_lazy("add-term", kwargs={"category": TermCategory.STATISTICAL_TEST}),
+                add_related_url=reverse_lazy(
+                    "add-term", kwargs={"category": TermCategory.STATISTICAL_TEST}
+                ),
             ),
             "effect_size_metric": AddAnotherWidgetWrapper(
                 ModelSelect2Widget(
@@ -259,7 +297,9 @@ class InvestigationForm(ModelForm):
                         "data-placeholder": "Search for ontology ...",
                     },
                 ),
-                add_related_url=reverse_lazy("add-term", kwargs={"category": TermCategory.EFFECT_SIZE_METRIC}),
+                add_related_url=reverse_lazy(
+                    "add-term", kwargs={"category": TermCategory.EFFECT_SIZE_METRIC}
+                ),
             ),
         }
         help_texts = {
@@ -269,7 +309,7 @@ class InvestigationForm(ModelForm):
         }
 
 
-class SubmittedDataForm(ModelForm):
+class DataForm(ModelForm):
     class Meta:
         model = StudyData
         fields = ["reference_genome", "data"]

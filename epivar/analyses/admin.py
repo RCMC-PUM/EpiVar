@@ -21,4 +21,3 @@ class LOAAnalysisAdmin(VersionAdmin):
 @admin.register(SOA)
 class SOAAnalysisAdmin(VersionAdmin):
     readonly_fields = ("task",)
-

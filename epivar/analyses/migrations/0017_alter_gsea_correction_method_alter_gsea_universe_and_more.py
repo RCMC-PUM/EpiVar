@@ -40,19 +40,19 @@ class Migration(migrations.Migration):
             model_name="gsea",
             name="universe",
             field=models.CharField(
-                    choices=[
-                        ("H", "Hallmark"),
-                        ("C1", "Positional gene sets"),
-                        ("C2", "Curated gene sets"),
-                        ("C3", "Regulatory target gene sets"),
-                        ("C4", "Computational gene sets"),
-                        ("C5", "Ontology gene sets"),
-                        ("C6", "Oncogenic signature gene sets"),
-                        ("C7", "Immunologic signature gene sets"),
-                        ("C8", "Cell type signature gene sets"),
-                    ],
-                    max_length=50,
-                )
+                choices=[
+                    ("H", "Hallmark"),
+                    ("C1", "Positional gene sets"),
+                    ("C2", "Curated gene sets"),
+                    ("C3", "Regulatory target gene sets"),
+                    ("C4", "Computational gene sets"),
+                    ("C5", "Ontology gene sets"),
+                    ("C6", "Oncogenic signature gene sets"),
+                    ("C7", "Immunologic signature gene sets"),
+                    ("C8", "Cell type signature gene sets"),
+                ],
+                max_length=50,
+            ),
         ),
         migrations.AlterField(
             model_name="loa",

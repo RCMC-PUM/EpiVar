@@ -1,7 +1,13 @@
 from django.contrib import admin
 from reversion.admin import VersionAdmin
 
-from .models import ChainFile, ReferenceGenome, GenomicFeature, GenomicFeatureCollection, GeneSet
+from .models import (
+    ChainFile,
+    ReferenceGenome,
+    GenomicFeature,
+    GenomicFeatureCollection,
+    GeneSet,
+)
 
 
 class GenomicFeatureInline(admin.TabularInline):

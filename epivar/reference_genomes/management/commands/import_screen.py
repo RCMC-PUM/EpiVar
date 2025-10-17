@@ -77,7 +77,11 @@ class Command(BaseCommand):
             label_records = defaultdict(list)
             with open(file_path, "r") as infile:
                 for line in infile:
-                    if line.startswith("#") or line.lower().startswith("chrom") or line.strip() == "":
+                    if (
+                        line.startswith("#")
+                        or line.lower().startswith("chrom")
+                        or line.strip() == ""
+                    ):
                         continue
                     parts = line.rstrip("\n").split("\t")
                     chrom, start, end = parts[0], parts[1], parts[2]
@@ -97,7 +101,9 @@ class Command(BaseCommand):
                 try:
                     feature = GenomicFeature.objects.get(name=feature_name)
                     if not force:
-                        self.stdout.write(f"{feature.name} already exists, skipping ...")
+                        self.stdout.write(
+                            f"{feature.name} already exists, skipping ..."
+                        )
                         continue
                     else:
                         self.stdout.write(f"{feature.name} exists, overwriting ...")
@@ -139,11 +145,19 @@ class Command(BaseCommand):
 
                     with open(bed_gz, "rb") as s, open(bed_tbi, "rb") as i:
                         feature.file.save(os.path.basename(bed_gz), File(s), save=False)
-                        feature.file_index.save(os.path.basename(bed_tbi), File(i), save=False)
+                        feature.file_index.save(
+                            os.path.basename(bed_tbi), File(i), save=False
+                        )
 
-                feature.reference = "SCREEN: Search Candidate cis-Regulatory Elements by ENCODE v3"
+                feature.reference = (
+                    "SCREEN: Search Candidate cis-Regulatory Elements by ENCODE v3"
+                )
                 feature.reference_url = "https://screen.encodeproject.org/"
                 feature.collection = collection
 
                 feature.save()
-                self.stdout.write(self.style.SUCCESS(f"Imported {feature.name} into {collection.name}"))
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Imported {feature.name} into {collection.name}"
+                    )
+                )

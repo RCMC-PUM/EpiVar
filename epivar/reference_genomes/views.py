@@ -58,10 +58,10 @@ class GenomicFeatureDataView(View):
         # Filtering (search box)
         if search_value:
             queryset = queryset.filter(
-                Q(name__icontains=search_value) |
-                Q(description__icontains=search_value) |
-                Q(reference_genome__name__icontains=search_value) |
-                Q(collection__name__icontains=search_value)
+                Q(name__icontains=search_value)
+                | Q(description__icontains=search_value)
+                | Q(reference_genome__name__icontains=search_value)
+                | Q(collection__name__icontains=search_value)
             )
 
         total_records = GenomicFeature.objects.count()
@@ -74,28 +74,34 @@ class GenomicFeatureDataView(View):
         queryset = queryset.order_by(order_column)
 
         # Pagination
-        queryset = queryset[start:start + length]
+        queryset = queryset[start : start + length]
 
         # Build response
         data = []
         for feature in queryset:
-            data.append({
-                "id": feature.id,
-                "name": feature.name,
-                "collection": feature.collection.name,
-                "description": feature.description,
-                "reference_genome": (
-                    feature.reference_genome.name if feature.reference_genome else ""
-                ),
-                "detail_url": reverse("genomic-feature-detail", args=[feature.id]),
-            })
+            data.append(
+                {
+                    "id": feature.id,
+                    "name": feature.name,
+                    "collection": feature.collection.name,
+                    "description": feature.description,
+                    "reference_genome": (
+                        feature.reference_genome.name
+                        if feature.reference_genome
+                        else ""
+                    ),
+                    "detail_url": reverse("genomic-feature-detail", args=[feature.id]),
+                }
+            )
 
-        return JsonResponse({
-            "draw": draw,
-            "recordsTotal": total_records,
-            "recordsFiltered": filtered_records,
-            "data": data,
-        })
+        return JsonResponse(
+            {
+                "draw": draw,
+                "recordsTotal": total_records,
+                "recordsFiltered": filtered_records,
+                "data": data,
+            }
+        )
 
 
 class GenomicFeatureDetailView(DetailView):
@@ -134,10 +140,10 @@ class GeneSetDataView(View):
         # Filtering (search box)
         if search_value:
             queryset = queryset.filter(
-                Q(name__icontains=search_value) |
-                Q(collection__icontains=search_value) |
-                Q(subcollection__icontains=search_value) |
-                Q(systematic_name__icontains=search_value)
+                Q(name__icontains=search_value)
+                | Q(collection__icontains=search_value)
+                | Q(subcollection__icontains=search_value)
+                | Q(systematic_name__icontains=search_value)
             )
 
         total_records = GeneSet.objects.count()
@@ -150,27 +156,31 @@ class GeneSetDataView(View):
         queryset = queryset.order_by(order_column)
 
         # Pagination
-        queryset = queryset[start:start + length]
+        queryset = queryset[start : start + length]
 
         # Build response
         # Build response
         data = []
         for gs in queryset:
-            data.append({
-                "id": gs.id,
-                "name": gs.name,
-                "collection": gs.collection,
-                "subcollection": gs.subcollection,
-                "systematic_name": gs.systematic_name,
-                "detail_url": reverse("gene-set-detail", args=[gs.id])
-            })
+            data.append(
+                {
+                    "id": gs.id,
+                    "name": gs.name,
+                    "collection": gs.collection,
+                    "subcollection": gs.subcollection,
+                    "systematic_name": gs.systematic_name,
+                    "detail_url": reverse("gene-set-detail", args=[gs.id]),
+                }
+            )
 
-        return JsonResponse({
-            "draw": draw,
-            "recordsTotal": total_records,
-            "recordsFiltered": filtered_records,
-            "data": data,
-        })
+        return JsonResponse(
+            {
+                "draw": draw,
+                "recordsTotal": total_records,
+                "recordsFiltered": filtered_records,
+                "data": data,
+            }
+        )
 
 
 class GeneSetDetailView(DetailView):

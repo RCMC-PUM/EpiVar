@@ -3,19 +3,19 @@
 # ==========================
 data/
 static/
+gene_sets/
 exemplary_data/
-gene_sets_dir/
 *.bed
 *.bedpe
 *.bed.gz
 *.bedpe.gz
+*.tbi
 
 # ==========================
 # notebooks
 # ==========================
 notebooks/
 *.ipynb
-
 
 # ==========================
 # OS / Editor junk

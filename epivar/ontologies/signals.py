@@ -3,6 +3,7 @@ import logging
 import requests
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.core.exceptions import ValidationError
 
 from .models import AnatomicalStructure, CellType, Term
 
@@ -26,8 +27,7 @@ def fetch_ontology_data(sender, instance, **kwargs):
     data = response.json()
     if data.get("page", {}).get("totalElements", 0) == 0:
         instance.delete()
-        logger.error(f"Term {obo_id} not found.")
-        return
+        raise ValidationError(f"Term {obo_id} not found.")
 
     term = data["_embedded"]["terms"][0]
     type(instance).objects.filter(pk=instance.pk).update(

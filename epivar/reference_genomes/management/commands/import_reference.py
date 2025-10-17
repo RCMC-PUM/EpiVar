@@ -69,7 +69,9 @@ class Command(BaseCommand):
 
                 with open(ann_gz, "rb") as s, open(ann_tbi, "rb") as i:
                     instance.annotations_file.save(ann_gz.name, File(s), save=False)
-                    instance.annotations_file_index.save(ann_tbi.name, File(i), save=False)
+                    instance.annotations_file_index.save(
+                        ann_tbi.name, File(i), save=False
+                    )
 
                 # -----------------------
                 # 2. Download chrom sizes
@@ -81,15 +83,21 @@ class Command(BaseCommand):
                 chrom_df.columns = ["#chrom", "end"]
 
                 # Normalize names: strip chr, fix M→MT
-                chrom_df["#chrom"] = chrom_df["#chrom"].str.replace("^chr", "", regex=True)
-                chrom_df["#chrom"] = chrom_df["#chrom"].str.replace("M$", "MT", regex=True)
+                chrom_df["#chrom"] = chrom_df["#chrom"].str.replace(
+                    "^chr", "", regex=True
+                )
+                chrom_df["#chrom"] = chrom_df["#chrom"].str.replace(
+                    "M$", "MT", regex=True
+                )
 
                 # Save normalized chrom.sizes (2-column file)
                 norm_chrom_sizes = tmpdir / "chrom_sizes.txt"
                 chrom_df.to_csv(norm_chrom_sizes, sep="\t", header=False, index=False)
 
                 with open(norm_chrom_sizes, "rb") as c:
-                    instance.chrom_size_file.save(norm_chrom_sizes.name, File(c), save=False)
+                    instance.chrom_size_file.save(
+                        norm_chrom_sizes.name, File(c), save=False
+                    )
 
                 # -----------------------
                 # Convert chrom.sizes → BED
@@ -121,7 +129,9 @@ class Command(BaseCommand):
 
                 with open(bed_gz, "rb") as s, open(bed_tbi, "rb") as i:
                     instance.chrom_size_file_bed.save(bed_gz.name, File(s), save=False)
-                    instance.chrom_size_file_bed_index.save(bed_tbi.name, File(i), save=False)
+                    instance.chrom_size_file_bed_index.save(
+                        bed_tbi.name, File(i), save=False
+                    )
 
                 # -----------------------
                 # Save final instance

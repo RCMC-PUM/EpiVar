@@ -11,6 +11,7 @@ class BaseDataAdmin(VersionAdmin):
         "data_checksum",
         "data_index_checksum",
     )
+    exclude_fields = ("plots",)
     search_fields = ("study__study_id",)
 
 

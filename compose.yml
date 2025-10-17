@@ -33,6 +33,7 @@ services:
     networks:
       - backend
     volumes:
+      - ./epivar/:/app/epivar/
       - epivar_media_volume:/opt/mediafiles/
     depends_on:
       - redis

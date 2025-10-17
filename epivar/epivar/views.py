@@ -13,7 +13,9 @@ def home(request):
 
     studies_number = 0
     for dt in [AssociationStudy, InteractionStudy, ProfilingStudy]:
-        studies_number += dt.objects.filter(integration_status=IntegrationStatus.PASSED).count()
+        studies_number += dt.objects.filter(
+            integration_status=IntegrationStatus.PASSED
+        ).count()
 
     tracks_number = GenomicFeature.objects.all().count()
     context = {

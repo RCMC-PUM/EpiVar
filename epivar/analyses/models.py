@@ -4,7 +4,11 @@ from django.core.exceptions import ValidationError
 from django_celery_results.models import TaskResult
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-from reference_genomes.models import ReferenceGenome, GeneSetCollection, GenomicFeatureCollection
+from reference_genomes.models import (
+    ReferenceGenome,
+    GeneSetCollection,
+    GenomicFeatureCollection,
+)
 from users.models import User
 
 
@@ -35,6 +39,7 @@ class CorrectionMethod(models.TextChoices):
 
 class BaseAnalysis(models.Model):
     """Abstract base model for all analysis types."""
+
     submitter = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(default="", max_length=255)
 
@@ -75,25 +80,32 @@ class BaseAnalysis(models.Model):
 
 class GSEA(BaseAnalysis):
     """GSEA-specific analysis model."""
+
     INPUT_TYPE_CHOICES = [
-        ('genomic_intervals', 'Genomic Intervals'),
-        ('gene_names', 'Gene Names'),
+        ("genomic_intervals", "Genomic Intervals"),
+        ("gene_names", "Gene Names"),
     ]
 
     input_type = models.CharField(
-        max_length=20,
-        choices=INPUT_TYPE_CHOICES,
-        default='gene_names'
+        max_length=20, choices=INPUT_TYPE_CHOICES, default="gene_names"
     )
     universe = models.CharField(
         choices=GeneSetCollection, default=None, null=True, blank=True
     )
 
-    n_closest = models.IntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(10)])
-    max_absolute_distance = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5000)])
+    n_closest = models.IntegerField(
+        default=1, validators=[MinValueValidator(1), MaxValueValidator(10)]
+    )
+    max_absolute_distance = models.IntegerField(
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(5000)]
+    )
 
-    annotated_foreground = models.FileField(upload_to=data_path, editable=False, null=True, blank=True)
-    annotated_background = models.FileField(upload_to=data_path, editable=False, null=True, blank=True)
+    annotated_foreground = models.FileField(
+        upload_to=data_path, editable=False, null=True, blank=True
+    )
+    annotated_background = models.FileField(
+        upload_to=data_path, editable=False, null=True, blank=True
+    )
 
     class Meta:
         verbose_name_plural = "GSEA"
@@ -104,19 +116,20 @@ class GSEA(BaseAnalysis):
 
 class LOA(BaseAnalysis):
     """LOA-specific analysis model."""
+
     ALTERNATIVE_CHOICES = (
-            ("greater", "Enrichment"),
-            ("less", "Depletion"),
-            ("two-sided", "Both")
-        )
+        ("greater", "Enrichment"),
+        ("less", "Depletion"),
+        ("two-sided", "Both"),
+    )
 
     universe = models.ManyToManyField(
-        GenomicFeatureCollection,
-        blank=False,
-        related_name="loa_universes"
+        GenomicFeatureCollection, blank=False, related_name="loa_universes"
     )
     permutations = models.IntegerField(null=True, blank=True, default=10)
-    alternative = models.CharField(choices=ALTERNATIVE_CHOICES, max_length=20, default="two-sided")
+    alternative = models.CharField(
+        choices=ALTERNATIVE_CHOICES, max_length=20, default="two-sided"
+    )
 
     class Meta:
         verbose_name_plural = "LOA"
@@ -127,9 +140,18 @@ class LOA(BaseAnalysis):
 
 class SOA(BaseAnalysis):
     """SOA-specific analysis model."""
+    class StudyType(models.TextChoices):
+        ASSOCIATION = "association_study", "Association Study"
+        INTERACTION = "interaction_study", "Interaction Study"
+        PROFILING = "profiling_study", "Profiling Study"
+
+    study_type = models.CharField(
+        max_length=50,
+        choices=StudyType.choices,
+    )
+
     class Meta:
         verbose_name_plural = "SOA"
 
     def __str__(self):
         return "Study Overlap Analysis"
-

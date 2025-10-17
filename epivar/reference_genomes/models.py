@@ -97,7 +97,9 @@ class ReferenceGenome(models.Model):
         blank=True,
         editable=False,
     )
-    chrom_size_file_bed_checksum = models.CharField(blank=True, null=True, editable=True)
+    chrom_size_file_bed_checksum = models.CharField(
+        blank=True, null=True, editable=True
+    )
 
     chrom_size_file_bed_index = models.FileField(
         upload_to=upload_chrom_size_file,
@@ -212,6 +214,7 @@ class GenomicFeatureCollection(models.Model):
     A logical grouping of multiple GenomicFeatures
     (e.g., 15-state-core-model for CD4).
     """
+
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, null=True)
     reference = models.TextField(blank=True, null=True)
@@ -233,6 +236,7 @@ class GenomicFeature(models.Model):
     Individual feature (e.g., one state BED file)
     that can belong to a collection.
     """
+
     collection = models.ForeignKey(
         GenomicFeatureCollection,
         on_delete=models.CASCADE,
@@ -330,7 +334,6 @@ class GeneSet(models.Model):
             ),
         ]
         ordering = ["name"]
-
 
     def __str__(self):
         return f"{self.name} [{self.collection}]"
