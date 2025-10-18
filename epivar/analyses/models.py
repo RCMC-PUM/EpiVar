@@ -116,7 +116,6 @@ class GSEA(BaseAnalysis):
 
 class LOA(BaseAnalysis):
     """LOA-specific analysis model."""
-
     ALTERNATIVE_CHOICES = (
         ("greater", "Enrichment"),
         ("less", "Depletion"),
@@ -130,6 +129,7 @@ class LOA(BaseAnalysis):
     alternative = models.CharField(
         choices=ALTERNATIVE_CHOICES, max_length=20, default="two-sided"
     )
+    lift_over_metrics = models.JSONField(blank=True, null=True)
 
     class Meta:
         verbose_name_plural = "LOA"

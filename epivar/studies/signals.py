@@ -22,8 +22,6 @@ from .models import (
     StudyData,
 )
 
-from reference_genomes.models import Assembly
-
 from .tasks import (
     notify_reviewer_task,
     create_embeddings_task,

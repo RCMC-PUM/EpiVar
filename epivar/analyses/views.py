@@ -202,18 +202,16 @@ class LOADetailView(LoginRequiredMixin, DetailView):
                 if subdf.empty:
                     continue
 
-                # Generate bubble plot
                 fig_html = bubble_plot(subdf, hover="name", size="Foreground overlap")
 
-                # Add link to Term
                 subdf["name"] = subdf.apply(
-                    lambda row: f'<a href="{reverse("genomic-feature-detail", args=[row["genomic_set_id"]])}">{row["name"]}</a>',
+                    lambda
+                        row: f'<a href="{reverse("genomic-feature-detail", args=[row["genomic_set_id"]])}">{row["name"]}</a>',
                     axis=1,
                 )
                 subdf = subdf.drop("genomic_set_id", axis=1)
-
-                # Generate table
                 subdf.columns = [n.capitalize() for n in subdf.columns]
+
                 table_html = subdf.to_html(
                     classes="table table-sm table-striped datatable",
                     index=False,
@@ -233,15 +231,17 @@ class LOADetailView(LoginRequiredMixin, DetailView):
             {
                 "title": f"LOA: {loa.title}",
                 "collections": collections,
+                "foreground": loa.foreground,
+                "background": loa.background,
                 "metadata": {
                     "creation_date": loa.created_at,
-                    "foreground": loa.foreground,
-                    "background": loa.background,
+                    "permutations": loa.permutations,
+                    "alternative": loa.alternative,
+                    "lift_over_metrics": loa.lift_over_metrics,
+                    "universe": " | ".join([x.name for x in loa.universe.all()]),
                 },
-                "universe": " | ".join([x.name for x in loa.universe.all()]),
             }
         )
-
         return context
 
 
@@ -268,7 +268,7 @@ class SOAView(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["form_name"] = "Study Overlap Analysis"
+        context["form_name"] = "Study Overlap Analysis (SOA)"
         return context
 
     def form_valid(self, form):

@@ -54,7 +54,90 @@
                             <p><b>Analysis title:</b> {{ loa.title }}</p>
                             <p><b>Creation Date:</b> {{ metadata.creation_date }}</p>
                             <p><b>Submitter:</b> {{ loa.submitter }}</p>
-                            <p><b>Universe:</b> {{ universe }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parameters -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingParameters">
+                        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseParameters">
+                            Parameters
+                        </button>
+                    </h2>
+                    <div id="collapseParameters" class="accordion-collapse collapse" data-bs-parent="#metadataAccordion">
+                        <div class="accordion-body row g-3">
+
+                            <div class="col-md-6 d-flex justify-content-between">
+                                <b>Reference genome:</b>
+                                <a href="{% url 'reference-genome-detail' loa.reference_genome.pk %}">
+                                    {{ loa.reference_genome }}
+                                </a>
+                            </div>
+
+                            <div class="col-md-6 d-flex justify-content-between">
+                                <b>Universe:</b>
+                                <span>{{ metadata.universe }}</span>
+                            </div>
+
+                            <div class="col-md-6 d-flex justify-content-between">
+                                <b>Permutations:</b>
+                                <span>{{ metadata.permutations }}</span>
+                            </div>
+
+                            <div class="col-md-6 d-flex justify-content-between">
+                                <b>Alternative:</b>
+                                <span>{{ metadata.alternative }}</span>
+                            </div>
+
+                            <div class="col-md-12 mt-3">
+                                <b>Lift-over metrics:</b>
+                                {% if metadata.lift_over_metrics %}
+                                    <div class="row mt-2">
+                                        {% if metadata.lift_over_metrics.foreground %}
+                                            <div class="col-md-6">
+                                                <div class="card shadow-sm mb-3">
+                                                    <div class="card-header bg-light"><b>Foreground</b></div>
+                                                    <div class="card-body p-2">
+                                                        <table class="table table-sm table-bordered mb-0">
+                                                            <tbody>
+                                                            {% for key, value in metadata.lift_over_metrics.foreground.items %}
+                                                                <tr>
+                                                                    <td><b>{{ key }}</b></td>
+                                                                    <td>{{ value }}</td>
+                                                                </tr>
+                                                            {% endfor %}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        {% if metadata.lift_over_metrics.background %}
+                                            <div class="col-md-6">
+                                                <div class="card shadow-sm mb-3">
+                                                    <div class="card-header bg-light"><b>Background</b></div>
+                                                    <div class="card-body p-2">
+                                                        <table class="table table-sm table-bordered mb-0">
+                                                            <tbody>
+                                                            {% for key, value in metadata.lift_over_metrics.background.items %}
+                                                                <tr>
+                                                                    <td><b>{{ key }}</b></td>
+                                                                    <td>{{ value }}</td>
+                                                                </tr>
+                                                            {% endfor %}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">Not applicable</span>
+                                {% endif %}
+                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -71,8 +154,8 @@
 
                             <div class="col-md-6 d-flex justify-content-between">
                                 <b>Foreground:</b>
-                                {% if metadata.foreground %}
-                                    <a href="{{ metadata.foreground.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                                {% if foreground %}
+                                    <a href="{{ foreground.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
                                         <i class="bi bi-download"></i> Download
                                     </a>
                                 {% else %}<span class="text-muted">Not provided</span>{% endif %}
@@ -80,8 +163,8 @@
 
                             <div class="col-md-6 d-flex justify-content-between">
                                 <b>Background:</b>
-                                {% if metadata.background %}
-                                    <a href="{{ metadata.background.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                                {% if background %}
+                                    <a href="{{ background.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
                                         <i class="bi bi-download"></i> Download
                                     </a>
                                 {% else %}<span class="text-muted">Not provided</span>{% endif %}

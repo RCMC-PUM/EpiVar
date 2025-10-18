@@ -1,9 +1,8 @@
 import os
-import math
 import tempfile
-import pandas as pd
-import numpy as np
 import pybedtools
+import numpy as np
+import pandas as pd
 import gseapy as gp
 
 from django.apps import apps
@@ -14,7 +13,9 @@ from scipy.stats import fisher_exact
 from django_celery_results.models import TaskResult
 from django.core.exceptions import ValidationError
 
-from reference_genomes.models import GeneSet, GeneSetCollection
+from datasets.models import DataTypes
+from reference_genomes.genomics import lift_over, lift_over_metrics
+from reference_genomes.models import GeneSet, GeneSetCollection, Assembly, ChainFile
 from datasets.models import AssociationData, InteractionData, ProfilingData
 
 from studies.models import (
@@ -24,7 +25,6 @@ from studies.models import (
     IntegrationStatus,
     RecordStatus,
 )
-from .models import SOA
 from .utils import _clean_loa_table, _clean_gsea_table
 from .data_models import BEDRecord, GeneListRecord, validate_file
 
@@ -214,7 +214,6 @@ def step_annotate_and_extract_background(instance, reference):
 
 def run_gsea_enrichment(fg_genes, bg_genes: list, universe: str | None = None):
     """Run enrichment across all gene set collections."""
-    eps = np.nextafter(0, 1)
     results = []
 
     collections = (
@@ -254,10 +253,10 @@ def run_gsea_enrichment(fg_genes, bg_genes: list, universe: str | None = None):
 
 
 def safe_fisher(contingency, alternative):
-    corrected = np.array(contingency, dtype=float) + 0.5
+    corrected = np.array(contingency).round(0) + 1
     odds_ratio, pvalue = fisher_exact(corrected, alternative=alternative)
 
-    if math.isnan(odds_ratio) or math.isinf(odds_ratio):
+    if np.isnan(odds_ratio) or np.isinf(odds_ratio):
         odds_ratio = None
 
     return odds_ratio, pvalue
@@ -313,10 +312,12 @@ def locus_overlap_with_shuffle(
     fg_overlap = len(fg.intersect(ref, u=True))
 
     shuffle_overlaps = [
-        len(fg.shuffle(g=genome).intersect(ref, u=True)) for _ in range(permutations)
+        len(fg.shuffle(g=genome, seed=101).intersect(ref, u=True)) for _ in range(permutations)
     ]
 
     mean_bg_overlap = np.mean(shuffle_overlaps)
+    mean_bg_overlap = mean_bg_overlap if mean_bg_overlap > 1 else 1
+
     contingency = [
         [fg_overlap, n_fg - fg_overlap],
         [mean_bg_overlap, n_fg - mean_bg_overlap],
@@ -330,7 +331,7 @@ def locus_overlap_with_shuffle(
 
     return {
         "Foreground_total": n_fg,
-        "Background total": n_fg,  # foreground reused as "universe"
+        "Background total": n_fg,  # foreground count reused as "background" count
         "Foreground overlap": fg_overlap,
         "Background overlap": mean_bg_overlap,
         "Foreground to background ratio": ratio,
@@ -387,8 +388,8 @@ def _filter_studies(data_class, request, category, pval: float | None = None):
 @shared_task(bind=True)
 def gsea_task(self, gsea_id, universe=None):
     """Main GSEA pipeline task."""
-    GSEA = apps.get_model("analyses", "GSEA")
-    instance = GSEA.objects.get(id=gsea_id)
+    GSEA_model = apps.get_model("analyses", "GSEA")
+    instance = GSEA_model.objects.get(id=gsea_id)
 
     instance = _attach_task(instance, self.request.id)
     _validate_inputs(instance, instance.input_type)
@@ -421,15 +422,47 @@ def gsea_task(self, gsea_id, universe=None):
 
 @shared_task(bind=True)
 def loa_task(self, loa_id):
-    LOA = apps.get_model("analyses", "LOA")
-    instance = LOA.objects.get(id=loa_id)
+    LOA_model = apps.get_model("analyses", "LOA")
+    instance = LOA_model.objects.get(id=loa_id)
     instance = _attach_task(instance, self.request.id)
 
     validate_file(instance.foreground.path, BEDRecord)
     if instance.background:
         validate_file(instance.background.path, BEDRecord)
 
-    fg = pybedtools.BedTool(instance.foreground.path)
+    # Paths for analysis (may be replaced by lifted versions)
+    fg_path = instance.foreground.path
+    bg_path = instance.background.path if instance.background else None
+
+    # Validate intersection if bg provided
+    if instance.background:
+        intersection = pybedtools.BedTool(fg_path).intersect(bg_path, u=True).count()
+        if intersection < pybedtools.BedTool(fg_path).count():
+            raise ValidationError(f"Foreground is not a subset of background!")
+
+    # Perform liftover only if not HG38
+    metrics = {}
+    if instance.reference_genome.name != Assembly.HG38:
+        chain_file = ChainFile.objects.get(
+            source_genome=instance.reference_genome,
+            target_genome__name=Assembly.HG38,
+        ).file.path
+
+        # Foreground
+        lifted_fg = tempfile.NamedTemporaryFile(delete=False, suffix=".bed")
+        lift_over(fg_path, lifted_fg.name, chain_file, DataTypes.bed)
+        metrics["foreground"] = lift_over_metrics(fg_path, lifted_fg.name)
+        fg_path = lifted_fg.name
+
+        # Background (if exists)
+        if bg_path:
+            lifted_bg = tempfile.NamedTemporaryFile(delete=False, suffix=".bed")
+            lift_over(bg_path, lifted_bg.name, chain_file, DataTypes.bed)
+            metrics["background"] = lift_over_metrics(bg_path, lifted_bg.name)
+            bg_path = lifted_bg.name
+
+    # Run analysis with temp files
+    fg = pybedtools.BedTool(fg_path)
     results = []
 
     for collection in instance.universe.all():
@@ -442,8 +475,8 @@ def loa_task(self, loa_id):
                     "genomic_set_id": genomic_set.id,
                 }
 
-                if instance.background:
-                    bg = pybedtools.BedTool(instance.background.path)
+                if bg_path:
+                    bg = pybedtools.BedTool(bg_path)
                     stats.update(
                         locus_overlap_with_bg(fg, bg, ref, instance.alternative)
                     )
@@ -468,31 +501,32 @@ def loa_task(self, loa_id):
     df = _clean_loa_table(df, instance.correction_method)
     df = df[df["Adjusted P-value"] <= instance.significance_level]
 
-    # And now to json
     instance.results = df.to_dict(orient="records")
-    instance.save(update_fields=["results"])
+    instance.lift_over_metrics = metrics
+
+    instance.save(update_fields=["results", "lift_over_metrics"])
 
 
 @shared_task(bind=True)
 def soa_task(self, soa_id, study_type):
     """Main SOA pipeline task."""
-    SOA = apps.get_model("analyses", "SOA")
-    instance = SOA.objects.get(id=soa_id)
+    SOA_model = apps.get_model("analyses", "SOA")
+    instance = SOA_model.objects.get(id=soa_id)
 
     instance = _attach_task(instance, self.request.id)
     validate_file(instance.foreground.path, BEDRecord)
 
-    if study_type == SOA.StudyType.ASSOCIATION:
+    if study_type == SOA_model.StudyType.ASSOCIATION:
         data = _filter_studies(
             AssociationData, instance, "Association data", instance.significance_level
         )
 
-    elif study_type == SOA.StudyType.INTERACTION:
+    elif study_type == SOA_model.StudyType.INTERACTION:
         data = _filter_studies(
             InteractionData, instance, "Interaction data", instance.significance_level
         )
 
-    elif study_type == SOA.StudyType.PROFILING:
+    elif study_type == SOA_model.StudyType.PROFILING:
         data = _filter_studies(ProfilingData, instance, "Profiling data")
 
     else:
