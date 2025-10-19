@@ -171,14 +171,10 @@ flowchart LR
     end
 
     %% EXTERNAL
-    subgraph EBI["🌐 EBI OLS4 API"]
-        EBI-data[Ontologies]
-    end
-    subgraph ERP["🧬 Epigenomic RoadMap Project"]
-        ERP-data[Segmentation Data]
-    end
-    subgraph MSigDB["📚 Molecular Signatures Database"]
-        MSigDB-data[Gene Sets]
+    subgraph External["External Resources"]
+        EBI-data[🌐 EBI OLS4 API]
+        ERP-data[🧬 Epigenomic RoadMap Project]
+        MSigDB-data[📚 Molecular Signatures Database]
     end
 
     %% FLOWS
@@ -194,9 +190,7 @@ flowchart LR
     Celery --> DB
     Flower --> Celery
 
-    ERP -- FTP --> App
-    EBI -- API --> App
-    MSigDB -- FTP --> App
+    External -- API --> App
 
     %% STYLES (placed at bottom so parser is happy)
     classDef client fill:#FCE7F3,stroke:#EC4899,color:#1F2937,stroke-width:1px;
