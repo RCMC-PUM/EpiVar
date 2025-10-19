@@ -67,8 +67,12 @@
                         <a href="#" class="btn btn-outline-primary disabled" style="width: 75px">View</a>
                     {% endif %}
 
+                    <a href="{% url analysis.category|lower|add:'-update-view' analysis.id %}"
+                       class="btn btn-outline-info" style="width: 75px">Update</a>
+
                     <a href="{% url analysis.category|lower|add:'-delete-view' analysis.id %}"
                        class="btn btn-danger" style="width: 75px">Delete</a>
+
                 </div>
             </td>
         </tr>

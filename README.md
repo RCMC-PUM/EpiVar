@@ -146,36 +146,70 @@ The stack consists of:
 
 ```mermaid
 flowchart LR
-    subgraph Client
+    %% CLIENT
+    subgraph Client["💻 Client"]
         Browser[User Browser / API Client]
     end
 
-    subgraph ProxyLayer["Proxy Layer"]
+    %% PROXY
+    subgraph ProxyLayer["🛡️ Proxy Layer"]
         Nginx[Nginx<br/>Reverse Proxy]
     end
 
-    subgraph Backend
-        App[Django App / API + Web UI]
-        Celery[Celery Worker: Tasks & Analysis]
-        Flower[Flower Dashboard: Monitoring]
+    %% BACKEND
+    subgraph Backend["⚙️ Backend Services"]
+        App[Django App<br/>API + Web UI]
+        Celery[Celery Worker<br/>Tasks & Analysis]
+        Flower[Flower Dashboard<br/>Monitoring]
     end
 
-    subgraph Data
+    %% DATA
+    subgraph Data["🗄️ Data Layer"]
         DB[(Postgres + pgvector)]
         Redis[(Redis: Broker + Cache)]
         Media[Static & Media Volumes]
     end
 
+    %% EXTERNAL
+    subgraph EBI["🌐 EBI OLS4 API"]
+        EBI-data[Ontologies]
+    end
+    subgraph ERP["🧬 Epigenomic RoadMap Project"]
+        ERP-data[Segmentation Data]
+    end
+    subgraph MSigDB["📚 Molecular Signatures Database"]
+        MSigDB-data[Gene Sets]
+    end
+
+    %% FLOWS
     Browser -- HTTPS/TLS --> Nginx
     Nginx --> App
     Nginx --> Flower
+    Nginx --> Media
+
     App --> DB
     App --> Redis
+    App --> Media
     Celery --> Redis
     Celery --> DB
-    App --> Media
-    Nginx --> Media
     Flower --> Celery
+
+    ERP -- FTP --> App
+    EBI -- API --> App
+    MSigDB -- FTP --> App
+
+    %% STYLES (placed at bottom so parser is happy)
+    classDef client fill:#FCE7F3,stroke:#EC4899,color:#1F2937,stroke-width:1px;
+    classDef proxy fill:#DBEAFE,stroke:#2563EB,color:#1F2937,stroke-width:1px;
+    classDef backend fill:#E0F2FE,stroke:#0284C7,color:#1F2937,stroke-width:1px;
+    classDef data fill:#DCFCE7,stroke:#16A34A,color:#1F2937,stroke-width:1px;
+    classDef external fill:#FEF9C3,stroke:#CA8A04,color:#1F2937,stroke-width:1px;
+
+    class Browser client
+    class Nginx proxy
+    class App,Celery,Flower backend
+    class DB,Redis,Media data
+    class EBI,EBI-data,ERP,ERP-data,MSigDB,MSigDB-data external
 ```
 
 ## 1. Prerequisites

@@ -28,15 +28,15 @@
 
           <h4 class="mb-3">
             {% if study.integration_status == "pending" %}
-              Your <b>{{ study.study_type }}</b> is waiting for processing
+                Study  <b>{{ study.study_id }}</b> is waiting for processing
             {% elif study.integration_status == "running" %}
-              Your <b>{{ study.study_type }}</b> is being processed
+              Study  <b>{{ study.study_id }}</b> is being processed
             {% elif study.integration_status == "passed" %}
-              Your <b>{{ study.study_type }}</b> is integrated
+              Study  <b>{{ study.study_id }}</b> is integrated
             {% elif study.integration_status == "failed" %}
-              Your <b>{{ study.study_type }}</b> failed during integration
+              Study  <b>{{ study.study_id }}</b> failed during integration
             {% else %}
-              <b>{{ study.study_type }}</b> status: unknown
+              Study  <b>{{ study.study_id }}</b> status: unknown
             {% endif %}
           </h4>
 
@@ -278,7 +278,7 @@
       <!-- Submission details -->
       <div class="card shadow-sm rounded-4 mb-4">
         <div class="card-body">
-          <h6 class="mb-3">Your submission</h6>
+          <h6 class="mb-3">Submission details</h6>
           <div class="small">
             <div><strong>Type:</strong> {{ study.study_type }}</div>
             <hr>

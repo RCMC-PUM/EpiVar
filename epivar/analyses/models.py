@@ -71,6 +71,7 @@ class BaseAnalysis(models.Model):
         TaskResult, on_delete=models.SET_NULL, null=True, blank=True, editable=False
     )
 
+    public = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

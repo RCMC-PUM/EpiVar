@@ -1,12 +1,11 @@
-import plotly.express as px
-import numpy as np
 import pandas as pd
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import CreateView, ListView, DetailView, DeleteView
-from django.contrib import messages
-from django.urls import reverse_lazy
+from django.views.generic import CreateView, ListView, DetailView, DeleteView, UpdateView
 from django.shortcuts import redirect, reverse
+from django.urls import reverse_lazy
+from django.contrib import messages
+from django.http import Http404
 
 from .tasks import gsea_task, loa_task, soa_task
 from .forms import GSEAform, LOAForm, SOAForm
@@ -70,8 +69,13 @@ class GSEADetailView(LoginRequiredMixin, DetailView):
     template_name = "analyses/gsea_detail.html"
     context_object_name = "gsea"
 
-    def get_queryset(self):
-        return super().get_queryset().filter(submitter=self.request.user)
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if not obj.public:
+            if obj.submitter != self.request.user:
+                raise Http404("You do not have permission to view this GSEA analysis.")
+
+        return obj
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -158,6 +162,24 @@ class GSEADeleteView(LoginRequiredMixin, DeleteView):
         return qs.filter(submitter=self.request.user)
 
 
+class GSEAUpdateView(LoginRequiredMixin, UpdateView):
+    model = GSEA
+    fields = ["title", "public"]
+    template_name = "analyses/update_form.html"
+    success_url = reverse_lazy("submitted-analyses")
+
+    def get_queryset(self):
+        """
+        Limit access to the submitter only.
+        """
+        return super().get_queryset().filter(submitter=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["form_name"] = "Update GSEA analysis"
+        return context
+
+
 class LOAView(LoginRequiredMixin, CreateView):
     model = LOA
     form_class = LOAForm
@@ -186,8 +208,13 @@ class LOADetailView(LoginRequiredMixin, DetailView):
     template_name = "analyses/loa_detail.html"
     context_object_name = "loa"
 
-    def get_queryset(self):
-        return super().get_queryset().filter(submitter=self.request.user)
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if not obj.public:
+            if obj.submitter != self.request.user:
+                raise Http404("You do not have permission to view this GSEA analysis.")
+
+        return obj
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -261,6 +288,24 @@ class LOADeleteView(LoginRequiredMixin, DeleteView):
         )  # assumes model has `submitter` FK
 
 
+class LOAUpdateView(LoginRequiredMixin, UpdateView):
+    model = LOA
+    fields = ["title", "public"]
+    template_name = "analyses/update_form.html"
+    success_url = reverse_lazy("submitted-analyses")
+
+    def get_queryset(self):
+        """
+        Limit access to the submitter only.
+        """
+        return super().get_queryset().filter(submitter=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["form_name"] = "Update LOA analysis"
+        return context
+
+
 class SOAView(LoginRequiredMixin, CreateView):
     model = SOA
     form_class = SOAForm
@@ -287,8 +332,13 @@ class SOADetailView(LoginRequiredMixin, DetailView):
     template_name = "analyses/soa_detail.html"
     context_object_name = "soa"
 
-    def get_queryset(self):
-        return super().get_queryset().filter(submitter=self.request.user)
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if not obj.public:
+            if obj.submitter != self.request.user:
+                raise Http404("You do not have permission to view this GSEA analysis.")
+
+        return obj
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -321,3 +371,21 @@ class SOADeleteView(LoginRequiredMixin, DeleteView):
         Limit delete access to the submitter only.
         """
         return super().get_queryset().filter(submitter=self.request.user)
+
+
+class SOAUpdateView(LoginRequiredMixin, UpdateView):
+    model = SOA
+    fields = ["title", "public"]
+    template_name = "analyses/update_form.html"
+    success_url = reverse_lazy("submitted-analyses")
+
+    def get_queryset(self):
+        """
+        Limit access to the submitter only.
+        """
+        return super().get_queryset().filter(submitter=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["form_name"] = "Update SOA analysis"
+        return context

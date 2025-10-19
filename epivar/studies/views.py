@@ -204,7 +204,7 @@ class ProfilingStudyWizard(LoginRequiredMixin, SessionWizardView):
 
 
 class StudiesView(ListView):
-    template_name = "studies/studies_list.html"
+    template_name = "studies/studies_list_general.html"
     context_object_name = "studies"
 
     def get_queryset(self):
@@ -225,7 +225,7 @@ class StudiesView(ListView):
 
 
 class UserStudiesView(LoginRequiredMixin, ListView):
-    template_name = "studies/studies_list.html"
+    template_name = "studies/studies_list_user.html"
     context_object_name = "studies"
 
     def get_queryset(self):
@@ -282,7 +282,7 @@ def build_integration_message(study):
     return None
 
 
-class StudyDetailMixin(LoginRequiredMixin, DetailView):
+class StudyDetailMixin(DetailView):
     slug_field = "study_id"
     slug_url_kwarg = "study_id"
     context_object_name = "study"
