@@ -29,7 +29,7 @@ class GenomicFeatureCollectionAdmin(VersionAdmin):
 class GenomicFeatureAdmin(VersionAdmin):
     list_display = ("name", "description", "collection__name")
     search_fields = ("name", "description", "collection__name")
-    readonly_fields = ("file_checksum", "file_index_checksum")
+    readonly_fields = ("file_checksum", "file_index", "file_index_checksum")
 
 
 @admin.register(ChainFile)

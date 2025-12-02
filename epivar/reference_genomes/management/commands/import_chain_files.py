@@ -1,11 +1,12 @@
-import sys
+import tempfile
 
 from django.core.files import File
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.core.exceptions import ObjectDoesNotExist
 
 from reference_genomes.models import Assembly, ReferenceGenome, ChainFile
-from ._private import download_file, delete_temp_dir
+from ._private import _download_file
+
 
 chain_files = [
     {
@@ -42,33 +43,71 @@ chain_files = [
 
 
 class Command(BaseCommand):
-    help = "Download chain files"
+    help = "Download liftOver chain files between supported reference assemblies"
+
+    # ----------------------------
+    # Private helpers
+    # ----------------------------
+    @staticmethod
+    def _get_reference_genomes(record):
+        """
+        Resolve source/target ReferenceGenome instances for a record or
+        raise a CommandError if either is missing.
+        """
+        try:
+            source = ReferenceGenome.objects.get(name=record["source"])
+            target = ReferenceGenome.objects.get(name=record["target"])
+        except ObjectDoesNotExist:
+            raise CommandError(
+                (
+                    "Either source or target reference genome for chain file "
+                    f"{record['source']} → {record['target']} does not exist."
+                )
+            )
+        return source, target
+
+    @staticmethod
+    def _get_or_create_chainfile_instance(source, target):
+        """
+        Return (instance, created_flag). If the chain file exists, we return it
+        with created=False. Otherwise, return an unsaved instance with created=True.
+        """
+        try:
+            instance = ChainFile.objects.get(
+                source_genome=source,
+                target_genome=target,
+            )
+            return instance, False
+        except ObjectDoesNotExist:
+            instance = ChainFile(
+                source_genome=source,
+                target_genome=target,
+            )
+            return instance, True
+
+    def _download_and_attach_chain_file(self, instance: ChainFile, url: str, tmpdir: str) -> None:
+        """
+        Download the chain file and attach it to the given ChainFile instance,
+        then save the instance.
+        """
+        self.stdout.write(f"Downloading: {instance} ...")
+        chain_file_path = _download_file(url, save_dir=tmpdir)
+
+        with open(chain_file_path, "rb") as fh:
+            instance.file.save(chain_file_path.name, File(fh), save=False)
+
+        instance.save()
 
     def handle(self, *args, **options):
         for record in chain_files:
-            try:
-                source = ReferenceGenome.objects.get(name=record["source"])
-                target = ReferenceGenome.objects.get(name=record["target"])
-            except ObjectDoesNotExist:
-                print(
-                    f"Either source or target reference genome for specified chain file does not exists."
-                )
-                sys.exit(-1)
+            with tempfile.TemporaryDirectory() as tmpdir:
+                source, target = self._get_reference_genomes(record)
+                instance, created = self._get_or_create_chainfile_instance(source, target)
 
-            try:
-                instance = ChainFile.objects.get(
-                    source_genome=source, target_genome=target
-                )
-                print(f"{instance} already exists, skipping ...")
+                if not created:
+                    self.stdout.write(f"{instance} already exists, skipping ...")
+                    continue
 
-            except ObjectDoesNotExist:
-                instance = ChainFile(source_genome=source, target_genome=target)
+                self._download_and_attach_chain_file(instance, record["file"], tmpdir)
+                self.stdout.write(self.style.SUCCESS(f"Imported {instance}"))
 
-                chain_file_path = download_file(record["file"])
-                with open(chain_file_path, "rb") as chain_file:
-                    instance.file.save(
-                        chain_file_path.name, File(chain_file), save=False
-                    )
-                    instance.save()
-
-        delete_temp_dir()

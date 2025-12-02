@@ -31,7 +31,7 @@ from .tasks import (
     adjust_pvalue_task,
     initial_test_task,
     intersection_task,
-    annotate_file_task,
+    annotate_bed_file_task,
     sort_and_index_task,
     liftover_task,
     generate_association_study_plots,
@@ -90,20 +90,20 @@ def integrate_association_data(sender, instance, **kwargs):
     # Use si() instead of s() for explicit arguments passing
     workflow = (
         # Test study submitted data
-        init_integration_task.si(study_model_name, instance.id)
-        | initial_test_task.si(study_model_name, instance.id, "association_record")
-        # Preprocess study submitted data
-        | intersection_task.si(study_model_name, instance.id)
-        | adjust_pvalue_task.si(study_model_name, instance.id)
-        # Move study data to Data object and lift over
-        | move_from_study_to_data_task.si(
+            init_integration_task.si(study_model_name, instance.id)
+            | initial_test_task.si(study_model_name, instance.id, "association_record")
+            # Preprocess study submitted data
+            | intersection_task.si(study_model_name, instance.id)
+            | adjust_pvalue_task.si(study_model_name, instance.id)
+            # Move study data to Data object and lift over
+            | move_from_study_to_data_task.si(
             study_model_name, instance.id, data_model_name
         )
-        | liftover_task.si(study_model_name, instance.id, data_model_name)
-        # Sort, bgzip and index
-        | sort_and_index_task.si(study_model_name, instance.id, data_model_name)
-        | annotate_file_task.si(study_model_name, instance.id, data_model_name)
-        | generate_association_study_plots.si(
+            | liftover_task.si(study_model_name, instance.id, data_model_name)
+            # Sort, bgzip and index
+            | sort_and_index_task.si(study_model_name, instance.id, data_model_name)
+            | annotate_bed_file_task.si(study_model_name, instance.id, data_model_name)
+            | generate_association_study_plots.si(
             study_model_name, instance.id, data_model_name
         )
     )
@@ -158,20 +158,20 @@ def integrate_interaction_data(sender, instance, **kwargs):
 
     workflow = (
         # Test study submitted data
-        init_integration_task.si(study_model_name, instance.id)
-        | initial_test_task.si(study_model_name, instance.id, "interaction_record")
-        # Preprocess study submitted data
-        | intersection_task.si(study_model_name, instance.id)
-        | convert_bedpe_to_bed.si(study_model_name, instance.id)
-        | adjust_pvalue_task.si(study_model_name, instance.id)
-        |
-        # Move study data to Data object and lift over
-        move_from_study_to_data_task.si(study_model_name, instance.id, data_model_name)
-        | liftover_task.si(study_model_name, instance.id, data_model_name)
-        # Sort, bgzip and index
-        | sort_and_index_task.si(study_model_name, instance.id, data_model_name)
-        | annotate_file_task.si(study_model_name, instance.id, data_model_name)
-        | generate_interaction_study_plots.si(
+            init_integration_task.si(study_model_name, instance.id)
+            | initial_test_task.si(study_model_name, instance.id, "interaction_record")
+            # Preprocess study submitted data
+            | intersection_task.si(study_model_name, instance.id)
+            # | convert_bedpe_to_bed.si(study_model_name, instance.id)
+            | adjust_pvalue_task.si(study_model_name, instance.id)
+            |
+            # Move study data to Data object and lift over
+            move_from_study_to_data_task.si(study_model_name, instance.id, data_model_name)
+            | liftover_task.si(study_model_name, instance.id, data_model_name)
+            # Sort, bgzip and index
+            # | sort_and_index_task.si(study_model_name, instance.id, data_model_name)
+            | annotate_bed_file_task.si(study_model_name, instance.id, data_model_name)
+            | generate_interaction_study_plots.si(
             study_model_name, instance.id, data_model_name
         )
     )

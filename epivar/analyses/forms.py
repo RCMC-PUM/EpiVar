@@ -23,7 +23,6 @@ class GSEAform(forms.ModelForm):
             "correction_method",
         ]
         widgets = {
-            # radio buttons for input_type
             "input_type": forms.RadioSelect(choices=GSEA.INPUT_TYPE_CHOICES),
         }
         help_texts = {
@@ -32,7 +31,7 @@ class GSEAform(forms.ModelForm):
             "reference_genome": "Select the reference genome for this analysis.",
             "foreground": "Upload dataset representing the test set.",
             "background": "Upload dataset representing the background set.",
-            "universe": "Optional: Constrain the universe of gene sets considered in the analysis to specific collections.",
+            "universe": "Constrain the universe of gene sets considered in the analysis to specific collections.",
             "n_closest": "Optional: Number of closest features to consider (1–10).",
             "max_absolute_distance": "Optional: Maximum allowed distance (in bases) between features (0–5000).",
             "require_same_strandedness": "Optional: Check this to consider strand orientation.",
@@ -79,10 +78,10 @@ class LOAForm(forms.ModelForm):
             "background": "Upload dataset representing the background set.",
             "universe": "Define the universe of genomic tracks (up to 5) considered in the analysis.",
             "minimum_overlap_required": "Minimum number of bases/regions required for an overlap to count.",
-            "alternative": "Defines the alternative hypothesis, one-side alternatives provides larger statistical power.",
+            "alternative": "Defines the alternative hypothesis.",
             "significance_level": "p-value threshold (e.g., 0.05) for statistical significance.",
             "correction_method": "Choose a multiple testing correction method (e.g., Bonferroni, FDR).",
-            "permutations": "Select the number of permutations to run (10–50). Larger values might provide more reliable estimates but require more time.",
+            "permutations": "Select the number of permutations. Larger values might provide more reliable estimates but require more time.",
         }
 
 

@@ -44,6 +44,7 @@ pyranges = "^0.1.4"
 django-addanother = "^2.2.2"
 gunicorn = "^23.0.0"
 django-tinymce = "^4.1.0"
+pyinotify = "^0.9.6"
 
 
 [tool.poetry.group.dev.dependencies]

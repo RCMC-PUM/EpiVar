@@ -354,7 +354,7 @@ class StudyDetailMixin(DetailView):
                     "vl": plotly_html_from_json(hg38.plots.get("vl"))
                 }
             )
-
+            ctx["hg38"] = hg38
             ctx["similar_studies"] = self.similarity_search()
         return ctx
 
@@ -419,7 +419,7 @@ class ProfilingStudyDetailView(StudyDetailMixin):
         )
 
 
-class AssociationStudyDeleteView(DeleteView):
+class AssociationStudyDeleteView(LoginRequiredMixin, DeleteView):
     model = AssociationStudy
     slug_field = "study_id"
     slug_url_kwarg = "study_id"
@@ -427,13 +427,21 @@ class AssociationStudyDeleteView(DeleteView):
     success_url = reverse_lazy("submitted-studies")
 
     def get_object(self, queryset=None):
+        user = self.request.user
+
         return get_object_or_404(
             AssociationStudy,
             study_id=self.kwargs.get(self.slug_url_kwarg),
+            submitter=user
         )
 
+    def delete(self, request, *args, **kwargs):
+        obj = self.get_object()
+        messages.success(request, f'Study "{obj.study_id}" has been deleted successfully.')
+        return super().delete(request, *args, **kwargs)
 
-class InteractionStudyDeleteView(DeleteView):
+
+class InteractionStudyDeleteView(LoginRequiredMixin, DeleteView):
     model = InteractionStudy
     slug_field = "study_id"
     slug_url_kwarg = "study_id"
@@ -441,13 +449,21 @@ class InteractionStudyDeleteView(DeleteView):
     success_url = reverse_lazy("submitted-studies")
 
     def get_object(self, queryset=None):
+        user = self.request.user
+
         return get_object_or_404(
             InteractionStudy,
             study_id=self.kwargs.get(self.slug_url_kwarg),
+            submitter=user
         )
 
+    def delete(self, request, *args, **kwargs):
+        obj = self.get_object()
+        messages.success(request, f'Study "{obj.study_id}" has been deleted successfully.')
+        return super().delete(request, *args, **kwargs)
 
-class ProfilingStudyDeleteView(DeleteView):
+
+class ProfilingStudyDeleteView(LoginRequiredMixin, DeleteView):
     model = ProfilingStudy
     slug_field = "study_id"
     slug_url_kwarg = "study_id"
@@ -455,7 +471,15 @@ class ProfilingStudyDeleteView(DeleteView):
     success_url = reverse_lazy("submitted-studies")
 
     def get_object(self, queryset=None):
+        user = self.request.user
+
         return get_object_or_404(
             ProfilingStudy,
             study_id=self.kwargs.get(self.slug_url_kwarg),
+            submitter=user
         )
+
+    def delete(self, request, *args, **kwargs):
+        obj = self.get_object()
+        messages.success(request, f'Study "{obj.study_id}" has been deleted successfully.')
+        return super().delete(request, *args, **kwargs)

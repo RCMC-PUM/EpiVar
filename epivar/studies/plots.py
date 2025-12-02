@@ -8,7 +8,7 @@ import dash_bio as dashbio
 
 def qq(
         path: str,
-        pval_column: str = "p-value",
+        pval_column: str = "FDR",
         name_col: str = "name",
         sample: int = 25_000,
 ) -> str:
@@ -29,7 +29,10 @@ def qq(
         },
     ).dropna()
 
-    df = df.sample(n=sample, random_state=101)
+    # Downsample if needed
+    if len(df) > sample:
+        df = df.sample(n=sample, random_state=101)
+
     df = df.sort_values(pval_column, ascending=True)
 
     # Expected vs observed
@@ -76,7 +79,7 @@ def qq(
     fig.add_trace(
         go.Scatter(
             x=[1.5],
-            y=[3],
+            y=[5],
             mode="text",
             name="λ=Inflation factor",
             text=[f"λ={inflation_factor:2f}"],
@@ -85,22 +88,25 @@ def qq(
     )
 
     fig.update_layout(
-        xaxis_title="-log10(Expected p-value)",
-        yaxis_title="-log10(Observed p-value)",
+        xaxis_title="-log10(Expected FDR)",
+        yaxis_title="-log10(Observed FDR)",
         template="plotly_white",
     )
 
     return pio.to_json(fig, validate=True)
 
 
-def prepare_for_manhattan(path: str, n: int = 25_000) -> pd.DataFrame:
+def prepare_for_manhattan(path: str, sample: int = 25_000) -> pd.DataFrame:
     """
     Prepare GWAS-style TSV/CSV into dataframe for dash_bio.ManhattanPlot.
     Required columns → CHR:int (1-25), BP:int, P:float
     Optional extras (e.g. name, es) are merged into annotation text.
     """
     df = pd.read_csv(path, sep="\t").dropna()
-    df = df.sample(n=n, random_state=101)
+
+    # Downsample if needed
+    if len(df) > sample:
+        df = df.sample(n=sample, random_state=101)
 
     # Rename columns to expected
     col_map = {"#chrom": "CHR", "start": "BP", "p-value": "P"}
@@ -322,7 +328,6 @@ def plotly_html_from_json(
     str
         HTML string containing the figure.
     """
-    # Accept dicts or JSON strings
     if isinstance(fig_json, str):
         fig = pio.from_json(fig_json)
     else:

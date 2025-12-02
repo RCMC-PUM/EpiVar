@@ -1,65 +1,85 @@
 import os
-import sys
-import shutil
-import requests
-
-from pandas.errors import ParserError
-import pandas as pd
+import tempfile
 from pathlib import Path
 
+import pandas as pd
+import requests
+from pandas.errors import ParserError
+from urllib.parse import urlsplit
 
-def delete_temp_dir(path="temp/"):
-    if os.path.isdir(path):
-        shutil.rmtree(path)
-        print(f"Deleted directory: {path}")
+
+def _download_file(
+    url: str,
+    dest: os.PathLike | str | None = None,
+    timeout: int = 30,
+    chunk_size: int = 8192,
+) -> Path:
+    """
+    Download a file from `url` and return its local Path.
+
+    - If `dest` is provided, the file is saved exactly there (creating parent dirs).
+    - If `dest` is None, a persistent temporary directory is created and the file is
+      saved inside it. The caller is responsible for cleaning it up later.
+    """
+    # Derive a filename from URL if needed
+    url_path = urlsplit(url).path
+    default_name = (url_path.rsplit("/", 1)[-1]) or "downloaded_file"
+
+    if dest is None:
+        tmpdir = Path(tempfile.mkdtemp(prefix="download_"))
+        dest_path = tmpdir / default_name
     else:
-        print(f"Directory does not exist: {path}")
+        dest_path = Path(dest)
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
 
-
-def download_file(url, save_dir="temp/", filename=None):
-    # Create the directory if it doesn't exist
-    os.makedirs(save_dir, exist_ok=True)
-
-    if filename is None:
-        filename = url.split("/")[-1] or "downloaded_file"
-
-    # Full path for saving the file
-    file_path = os.path.join(save_dir, filename)
-
-    # Download the file
     try:
-        response = requests.get(url, stream=True)
-        response.raise_for_status()  # Raise an error on bad status
-
-        # Write to file
-        with open(file_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-
-        print(f"File downloaded and saved to: {file_path}")
-        return Path(file_path)
-
+        with requests.get(url, stream=True, timeout=timeout) as resp:
+            resp.raise_for_status()
+            with open(dest_path, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=chunk_size):
+                    if chunk:  # filter out keep-alive chunks
+                        f.write(chunk)
     except requests.RequestException as e:
-        print(f"Failed to download file: {e}")
-        sys.exit(-1)
+        raise RuntimeError(f"Failed to download file from {url!r}") from e
+
+    return dest_path
 
 
-def parse_asct_table(path):
-    expected_columns = {"AS/1", "AS/1/ID", "CT/1", "CT/1/ID"}
-    max_skip_rows = 25
+# Keep a stable order for columns
+EXPECTED_COLUMNS = ["AS/1", "AS/1/ID", "CT/1", "CT/1/ID"]
+
+
+def _parse_asct_table(
+    path: os.PathLike | str,
+    max_skip_rows: int = 25,
+) -> pd.DataFrame:
+    """
+    Try to parse an ASCT+ table CSV, skipping up to `max_skip_rows` lines
+    to find the header containing EXPECTED_COLUMNS.
+
+    Returns a DataFrame with only EXPECTED_COLUMNS (in that order) and
+    rows with all-NaN removed.
+
+    Raises:
+        ValueError if no matching header is found.
+    """
+    path = Path(path)
+    last_error: Exception | None = None
 
     for skip in range(max_skip_rows):
         try:
-            asct_table = pd.read_csv(path, skiprows=skip)
-            if expected_columns.issubset(set(asct_table.columns)):
-                asct_table = asct_table[list(expected_columns)]
-                break
-        except ParserError:
-            pass
-    else:
-        raise ValueError(
-            "Expected columns not found in the CSV file after checking multiple headers."
-        )
+            df = pd.read_csv(path, skiprows=skip)
+        except ParserError as e:
+            last_error = e
+            continue
 
-    asct_table = asct_table.dropna()
-    return asct_table.iterrows()
+        if set(EXPECTED_COLUMNS).issubset(df.columns):
+            # Keep a stable column order
+            df = df[EXPECTED_COLUMNS]
+            df = df.dropna()
+            return df
+
+    raise ValueError(
+        f"Expected columns {EXPECTED_COLUMNS} not found in the CSV file "
+        f"after checking the first {max_skip_rows} header positions."
+    ) from last_error

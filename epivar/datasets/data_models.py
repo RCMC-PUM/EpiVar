@@ -5,68 +5,39 @@ from django.core.exceptions import ValidationError
 
 
 CHR_OPTIONS_STR = Literal[
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "11",
-    "12",
-    "13",
-    "14",
-    "15",
-    "16",
-    "17",
-    "18",
-    "19",
-    "20",
-    "21",
-    "22",
-    "X",
-    "Y",
-    "MT",
-]
-
-CHR_OPTIONS_MIXED = Literal[
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
-    9,
-    10,
-    11,
-    12,
-    13,
-    14,
-    15,
-    16,
-    17,
-    18,
-    19,
-    20,
-    21,
-    22,
-    "X",
-    "Y",
-    "MT",
+    "chr1",
+    "chr2",
+    "chr3",
+    "chr4",
+    "chr5",
+    "chr6",
+    "chr7",
+    "chr8",
+    "chr9",
+    "chr10",
+    "chr11",
+    "chr12",
+    "chr13",
+    "chr14",
+    "chr15",
+    "chr16",
+    "chr17",
+    "chr18",
+    "chr19",
+    "chr20",
+    "chr21",
+    "chr22",
+    "chrX",
+    "chrY",
+    "chrMT",
 ]
 
 
 class AssociationRecord(BaseModel):
-    chrom: Union[CHR_OPTIONS_STR, CHR_OPTIONS_MIXED] = Field(alias="#chrom")
+    chrom: CHR_OPTIONS_STR = Field(alias="#chrom")
     start: conint(ge=0)
     end: conint(ge=0)
     name: str
-    score: Literal["."]
     strand: Literal["+", "-", "."]
     es: confloat(ge=0, le=1)
     p_value: confloat(ge=0, le=1) = Field(alias="p-value")
@@ -84,36 +55,33 @@ class AssociationRecord(BaseModel):
 
 
 class ProfilingRecord(BaseModel):
-    chr: Union[CHR_OPTIONS_STR, CHR_OPTIONS_MIXED] = Field(alias="#chrom")
+    chr: CHR_OPTIONS_STR = Field(alias="#chrom")
     start: conint(ge=0)
     end: conint(ge=0)
     name: Optional[str]
-    score: Literal["."]
     strand: Literal["+", "-", "."]
     me: confloat(ge=0)
-    # se: confloat(ge=0)
+    se: confloat(ge=0)
 
     expected_order: ClassVar = (
         "#chrom",
         "start",
         "end",
         "name",
-        "score",
         "strand",
         "me",
-        # "se",
+        "se",
     )
 
 
 class InteractionRecord(BaseModel):
-    chrom1: Union[CHR_OPTIONS_STR, CHR_OPTIONS_MIXED] = Field(alias="#chrom1")
+    chrom1: CHR_OPTIONS_STR = Field(alias="#chrom1")
     start1: conint(ge=0)
     end1: conint(ge=0)
     chrom2: str
     start2: conint(ge=0)
     end2: conint(ge=0)
     name: Optional[str]
-    score: Literal["."]
     strand1: Literal["+", "-", "."]
     strand2: Literal["+", "-", "."]
     es: confloat(ge=0, le=1)

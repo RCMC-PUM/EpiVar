@@ -2992,6 +2992,16 @@ files = [
 typing-extensions = ">=4.14.1"
 
 [[package]]
+name = "pyinotify"
+version = "0.9.6"
+description = "Linux filesystem events monitoring"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pyinotify-0.9.6.tar.gz", hash = "sha256:9c998a5d7606ca835065cdabc013ae6c66eb9ea76a00a1e3bc6e0cfe2b4f71f4"},
+]
+
+[[package]]
 name = "pyparsing"
 version = "3.2.5"
 description = "pyparsing - Classes and methods to define and execute parsing grammars"
@@ -4423,4 +4433,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "49f91ed76fa43de1a9697163c6b26519afb2e48adccb75b4ab74fac6a7aa0f0e"
+content-hash = "85f3622a547a193442c514306871e8b480aa997db70a074ddff56ff0023c625e"

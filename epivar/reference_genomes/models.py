@@ -5,10 +5,11 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.files.storage import FileSystemStorage
 
-from pybedtools import BedTool
-from liftover import ChainFile as CF
+from pybedtools import BedTool # noqa
+from liftover import ChainFile as CF # noqa
 
 
+# Utils
 def upload_chain_file(instance, name):
     return os.path.join(
         "reference_data", instance.source_genome.name, "chain_files/", name
@@ -28,11 +29,11 @@ def upload_genomic_features_file(instance, name):
         "reference_data", instance.reference_genome.name, "features/", name
     )
 
-
+# Validators
 def test_annotation_file(file):
     file_type = BedTool(file.path).file_type
-    if file_type != "gff":
-        raise ValidationError("Parsing error: only gff files are supported!")
+    if file_type != "gtf":
+        raise ValidationError("Parsing error: only gtf files are supported!")
 
 
 def test_index_file(file):
@@ -52,6 +53,7 @@ def test_genomic_features_file(file):
         raise ValidationError("Only .bed .bedpe .bigwig files are allowed.")
 
 
+# Models
 class Assembly(models.TextChoices):
     HG19 = "hg19", "hg19"
     HG38 = "hg38", "hg38"
@@ -299,15 +301,15 @@ class GenomicFeature(models.Model):
 
 
 class GeneSetCollection(models.TextChoices):
-    HALLMARK = "H", "Hallmark"
-    C1 = "C1", "Positional gene sets"
-    C2 = "C2", "Curated gene sets"
-    C3 = "C3", "Regulatory target gene sets"
-    C4 = "C4", "Computational gene sets"
-    C5 = "C5", "Ontology gene sets"
-    C6 = "C6", "Oncogenic signature gene sets"
-    C7 = "C7", "Immunologic signature gene sets"
-    C8 = "C8", "Cell type signature gene sets"
+    H = "Hallmark (H)", "Hallmark (H)"
+    C1 = "Positional gene sets (C1)", "Positional gene sets (C1)"
+    C2 = "Curated gene sets (C2)", "Curated gene sets (C2)"
+    C3 = "Regulatory target gene sets (C3)", "Regulatory target gene sets (C3)"
+    C4 = "Computational gene sets (C4)", "Computational gene sets (C4)"
+    C5 = "Ontology gene sets (C5)", "Ontology gene sets (C5)"
+    C6 = "Oncogenic signature gene sets (C6)", "Oncogenic signature gene sets (C6)"
+    C7 = "Immunologic signature gene sets (C7)", "Immunologic signature gene sets (C7)"
+    C8 = "Cell type signature gene sets (C8)", "Cell type signature gene sets (C8)"
 
 
 class GeneSet(models.Model):
@@ -320,11 +322,11 @@ class GeneSet(models.Model):
     exact_source = models.CharField(blank=True, null=True)
     external_details_url = models.URLField(blank=True, null=True)
 
-    systematic_name = models.CharField(max_length=50)
+    systematic_name = models.CharField(max_length=512)
     pmid = models.CharField(blank=True, null=True)
 
     reference = models.TextField(blank=True, null=True)
-    reference_url = models.URLField(blank=True, null=True)
+    reference_url = models.URLField(blank=True, null=True, max_length=512)
     genes = models.JSONField()
 
     class Meta:

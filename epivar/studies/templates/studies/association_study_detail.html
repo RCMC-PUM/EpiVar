@@ -1,37 +1,66 @@
 {% extends 'base_study_template.html' %}
 {% block analysis %}
 
-<!-- Analysis Plots -->
-<div class="card shadow-sm rounded-4 mb-4">
-  <div class="card-header"><h5 class="mb-0">Analysis Plots</h5></div>
-  <div class="card-body">
-    <div class="row">
-      <div class="col-md-6 text-center mb-4">
-        <h6>Genomic Distribution</h6>
-        {% if mh %}
-          <div>{{ mh|safe }}</div>
-        {% else %}
-          <div class="border rounded-3 bg-light p-5 text-muted">Plot placeholder</div>
-        {% endif %}
-      </div>
-      <div class="col-md-6 text-center mb-4">
-        <h6>QQ Plot</h6>
-        {% if qq %}
-          <div>{{ qq|safe }}</div>
-        {% else %}
-          <div class="border rounded-3 bg-light p-5 text-muted">Plot placeholder</div>
-        {% endif %}
-      </div>
+    <!-- IGV -->
+    <div class="card shadow-sm rounded-4 mb-4">
+        <div class="card-header"><h5 class="mb-0"> Integrative Genomics Viewer</h5></div>
+        <div class="card-body" id="igv-div"></div>
     </div>
-    <div class="text-center">
-      <h6>Annotations</h6>
-      {% if an %}
-        <div>{{ an|safe }}</div>
-      {% else %}
-        <div class="border rounded-3 bg-light p-5 text-muted">Plot placeholder</div>
-      {% endif %}
+
+    <!-- Analysis Plots -->
+    <div class="card shadow-sm rounded-4 mb-4">
+        <div class="card-header"><h5 class="mb-0">Analysis Plots</h5></div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 text-center mb-4">
+                    <h6>Genomic Distribution</h6>
+                    {% if mh %}
+                        <div>{{ mh|safe }}</div>
+                    {% else %}
+                        <div class="border rounded-3 bg-light p-5 text-muted">Plot placeholder</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 text-center mb-4">
+                    <h6>QQ Plot</h6>
+                    {% if qq %}
+                        <div>{{ qq|safe }}</div>
+                    {% else %}
+                        <div class="border rounded-3 bg-light p-5 text-muted">Plot placeholder</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="text-center">
+                <h6>Annotations</h6>
+                {% if an %}
+                    <div>{{ an|safe }}</div>
+                {% else %}
+                    <div class="border rounded-3 bg-light p-5 text-muted">Plot placeholder</div>
+                {% endif %}
+            </div>
+        </div>
     </div>
-  </div>
-</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/igv@3.5.4/dist/igv.min.js"></script>
+    <script>
+        var igvDiv = document.getElementById("igv-div");
+        var options =
+            {
+                genome: "hg38",
+                locus: "chr8:127,736,588-127,739,371",
+                tracks: [
+                    {
+                        "name": "{{ study.study_id }}",
+                        "url": "{{ hg38.data.url }}",
+                        "indexURL": "{{ hg38.data_index.url }}",
+                        "format": "bed"
+                    }
+                ]
+            };
+
+        igv.createBrowser(igvDiv, options)
+            .then(function (browser) {
+                console.log("Created IGV browser");
+            })
+    </script>
 
 {% endblock %}

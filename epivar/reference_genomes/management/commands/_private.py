@@ -1,37 +1,28 @@
 import os
-import sys
-
-import shutil
 import requests
 from pathlib import Path
+from pybedtools import BedTool
+
+from django.core.exceptions import ValidationError
 
 
-def delete_temp_dir(path="temp/"):
-    if os.path.isdir(path):
-        shutil.rmtree(path)
-        print(f"Deleted directory: {path}")
-    else:
-        print(f"Directory does not exist: {path}")
-
-
-def download_file(url, save_dir="temp/", filename=None) -> Path | None:
+def _download_file(url, save_dir=None, filename=None) -> Path | None:
     """
     Downloads a file from a URL and saves it to a specified directory.
 
     Args:
         url (str): The URL to download the file from.
         save_dir (str): The directory to save the downloaded file.
-        filename (str, optional): The name to save the file as. If not provided, the name is extracted from the URL.
+        filename (str) [OPTIONAL]: The name to save the file as. If not provided, the name is extracted from the URL.
 
     Returns:
         Path: Full path to the saved file.
     """
-
-    # Create the directory if it doesn't exist
-    os.makedirs(save_dir, exist_ok=True)
+    if save_dir is None:
+        raise Exception("Output directory (save_dir) has to be provided.")
 
     if filename is None:
-        filename = url.split("/")[-1] or "downloaded_file"
+        filename = url.split("/")[-1]
 
     # Full path for saving the file
     file_path = os.path.join(save_dir, filename)
@@ -45,5 +36,13 @@ def download_file(url, save_dir="temp/", filename=None) -> Path | None:
         for chunk in response.iter_content(chunk_size=8192):
             f.write(chunk)
 
-    print(f"File downloaded and saved to: {file_path}")
     return Path(file_path)
+
+
+def _validate_against_chrom_sizes(bed_file: str, chrom_size_file: str):
+    bed_file = BedTool(bed_file)
+    chrom_size_file = BedTool(chrom_size_file)
+
+    intersection = bed_file.intersect(chrom_size_file).count()
+    if intersection < bed_file.count():
+        raise ValidationError(f"Records within BED file are not subset of declared reference genome.")

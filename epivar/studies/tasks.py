@@ -384,7 +384,7 @@ def sort_and_index_task(self, study_model, instance_id, data_model):
 
 
 @shared_task(bind=True)
-def annotate_file_task(self, study_model, instance_id, data_model):
+def annotate_bed_file_task(self, study_model, instance_id, data_model):
     update_integration_status(
         study_model, instance_id, self.request.id, IntegrationStatus.RUNNING
     )
@@ -434,6 +434,57 @@ def annotate_file_task(self, study_model, instance_id, data_model):
             annotations["feature"].value_counts().to_dict()
         )
         data_instance.save(update_fields=["annotations", "annotations_metrics"])
+
+
+# @shared_task(bind=True)
+# def annotate_bedpe_file_task(self, study_model, instance_id, data_model):
+#     update_integration_status(
+#         study_model, instance_id, self.request.id, IntegrationStatus.RUNNING
+#     )
+#
+#     data_class = apps.get_model("datasets", data_model)
+#     data_instances = data_class.objects.filter(study__id=instance_id)
+#
+#     for data_instance in data_instances:
+#         gff = BedTool(data_instance.reference_genome.annotations_file.path)
+#         bedpe = BedTool(data_instance.data.path)
+#
+#         bed_headers = pd.read_table(
+#             data_instance.data.path, nrows=1, compression="gzip"
+#         ).columns.tolist()
+#         gff_headers = [
+#             "seqname",
+#             "source",
+#             "feature",
+#             "feature_start",
+#             "feature_end",
+#             "feature_score",
+#             "feature_strand",
+#             "frame",
+#             "attributes",
+#         ]
+#
+#         annotations = gff.pairToBed(bedpe, wo=True, sorted=True).to_dataframe()
+#         annotations.columns = [*gff_headers, *bed_headers, "ovp"]
+#         annotations[["seqname", "#chrom"]] = annotations[["seqname", "#chrom"]].astype(
+#             str
+#         )
+#
+#         with tempfile.NamedTemporaryFile(suffix=".parquet") as tmp_file:
+#             tmp_name = tmp_file.name
+#             annotations.to_parquet(tmp_name, engine="pyarrow", index=None)
+#
+#             with open(tmp_name, "rb") as f:
+#                 data_instance.annotations.save(
+#                     f"{data_instance.study.study_id}.annotations.{data_instance.reference_genome.name}.parquet",
+#                     File(f),
+#                     save=False,
+#                 )
+#
+#         data_instance.annotations_metrics = (
+#             annotations["feature"].value_counts().to_dict()
+#         )
+#         data_instance.save(update_fields=["annotations", "annotations_metrics"])
 
 
 @shared_task(bind=True)
