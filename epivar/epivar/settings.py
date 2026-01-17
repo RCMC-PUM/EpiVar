@@ -245,8 +245,8 @@ STATICFILES_DIRS = [
 
 # Media files
 # https://docs.djangoproject.com/en/5.2/topics/files/
-MEDIA_URL = f"{MINIO_PUBLIC_URL}/{MINIO_DEFAULT_BUCKET}/"
-STATIC_URL = f"{MINIO_PUBLIC_URL}/{MINIO_STATIC_BUCKET}/"
+STATIC_URL = "/static/"  # nginx -> minio
+MEDIA_URL = "/data/"  # nginx -> minio
 
 
 # Default primary key field type
@@ -284,6 +284,7 @@ CACHES = {
         "LOCATION": f"redis://:{passwd}@{host}:{port}/0",
     }
 }
+
 SELECT2_CACHE_BACKEND = "default"
 
 # SMTP
