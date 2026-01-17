@@ -1,64 +1,57 @@
 # syntax=docker/dockerfile:1
+ARG PYTHON_VERSION=3.13
+FROM python:${PYTHON_VERSION}-slim AS base
 
-ARG PYTHON_VERSION=3.11
-FROM python:${PYTHON_VERSION}-slim as base
-
+ARG APP_UID=10001
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Install build deps
-RUN apt-get update && apt-get install -y \
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    g++ \
     gcc \
+    g++ \
     make \
     zlib1g-dev \
     libbz2-dev \
     liblzma-dev \
     libpq-dev \
+    samtools \
     bedtools \
-    && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Create non-root user
-ARG UID=10001
 RUN adduser \
     --disabled-password \
     --gecos "" \
     --home "/nonexistent" \
     --shell "/sbin/nologin" \
     --no-create-home \
-    --uid "${UID}" \
+    --uid ${APP_UID} \
     appuser
 
-# Install Poetry
+# Pin poetry for reproducibility
 RUN pip install --no-cache-dir poetry
-
-# Configure Poetry to put .venv inside /app
 RUN poetry config virtualenvs.in-project true
 
-# Copy Poetry project files
 COPY poetry.lock pyproject.toml /app/
 
-# Install dependencies (only)
 RUN --mount=type=cache,target=/root/.cache/pip \
-    poetry install --no-root --only main
+    --mount=type=cache,target=/root/.cache/pypoetry \
+    poetry install --no-root
 
-# Copy application source
+# Copy app
 COPY epivar/ /app/epivar/
-WORKDIR /app/epivar/
+WORKDIR /app/epivar
 
-# Expose app port
+# Chenge ownership & chan gemode
+RUN chmod +x /app/epivar/setup.sh \
+ && chown -R appuser:appuser /app
+
 EXPOSE 8000
 
-RUN mkdir -p /var/www/staticfiles/logos && chown -R appuser:appuser /var/www/staticfiles
-RUN mkdir -p /opt/mediafiles && chown -R appuser:appuser /opt/mediafiles
-RUN mkdir -p /tmp/hf/cache/ && chown -R appuser:appuser /tmp/hf/cache/
-RUN chown -R appuser:appuser /app/epivar/
-
-# Change user
 USER appuser
-
-# Run app via gunicorn
 CMD ["./setup.sh"]

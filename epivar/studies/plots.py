@@ -98,7 +98,7 @@ def qq(
 
 def prepare_for_manhattan(path: str, sample: int = 25_000) -> pd.DataFrame:
     """
-    Prepare GWAS-style TSV/CSV into dataframe for dash_bio.ManhattanPlot.
+    Prepare GWAS-style TSV/CSV into dataframe for manhattan.
     Required columns → CHR:int (1-25), BP:int, P:float
     Optional extras (e.g. name, es) are merged into annotation text.
     """

@@ -12,18 +12,16 @@ services:
       - frontend
     volumes:
       - ./epivar/:/app/epivar/
-      - epivar_media_volume:/opt/mediafiles/
-      - epivar_static_volume:/var/www/staticfiles/
     depends_on:
       - db
       - redis
-      - celery_worker
+      - worker
     env_file:
       - .env
 
-  celery_worker:
+  worker:
     restart: always
-    command: poetry run python -m celery --app=epivar.celery worker --autoscale=2,1 -E
+    command: python -m celery --app=epivar.celery worker --autoscale=2,1 -E
     build:
       context: .
       dockerfile: images/app/Dockerfile
@@ -34,7 +32,6 @@ services:
       - backend
     volumes:
       - ./epivar/:/app/epivar/
-      - epivar_media_volume:/opt/mediafiles/
     depends_on:
       - redis
     env_file:
@@ -65,7 +62,7 @@ services:
     command: celery --broker=redis://:${REDIS_PASS}@redis:6379/0 flower --basic-auth="${FLOWER_USER}:${FLOWER_PASS}" --port=${FLOWER_PORT} --url_prefix=${FLOWER_ENDPOINT}
     depends_on:
       - redis
-      - celery_worker
+      - worker
     networks:
       - backend
     env_file:
@@ -75,20 +72,67 @@ services:
     image: nginx:latest
     restart: always
     ports:
-      - "80:80"
-      - "443:443"
+      - "8081:80"
+      #- "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/cert/:/etc/ssl/certs/:ro
       - ./nginx/logs/:/var/log/nginx/
-      - epivar_static_volume:/var/www/staticfiles/:ro
-      - epivar_media_volume:/opt/mediafiles/
     networks:
       - backend
       - frontend
     env_file:
       - .env
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${MINIO_PORT}:9000"     # API
+      - "${MINIO_CONSOLE_PORT}:9001"  # Console UI
+    env_file:
+      - .env
+    networks:
+      - backend
+      - frontend
+
+  # one-shot container that creates buckets
+  # To serve as static and media storages
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    env_file:
+      - .env
+    networks:
+        - backend
+        - frontend
+    volumes:
+      - mdata:/data/
+    restart: "on-failure"
+    entrypoint: >
+      /bin/sh -c '
+        set -eu;
+
+        echo "Waiting for MinIO...";
+        until mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; do
+          sleep 1;
+        done;
+
+        echo "Creating buckets...";
+        mc mb -p "local/$MINIO_DEFAULT_BUCKET" >/dev/null 2>&1 || true;
+        mc mb -p "local/$MINIO_STATIC_BUCKET"  >/dev/null 2>&1 || true;
+
+        echo "Setting policies...";
+        mc anonymous set none     "local/$MINIO_DEFAULT_BUCKET" >/dev/null 2>&1 || true;
+        mc anonymous set download "local/$MINIO_STATIC_BUCKET";
+
+        echo "MinIO init done."
+      '
 
 networks:
   frontend:
@@ -98,5 +142,4 @@ networks:
 
 volumes:
   epivar_postgres_data:
-  epivar_static_volume:
-  epivar_media_volume:
+  mdata:

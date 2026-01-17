@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
-
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()  # take environment variables
@@ -35,8 +35,8 @@ FIELD_ENCRYPTION_KEY = os.environ.get("FIELD_ENCRYPTION_KEY", "")
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 if DEBUG:
-    ALLOWED_HOSTS = ["localhost"]
-    CSRF_TRUSTED_ORIGINS = ["localhost"]
+    ALLOWED_HOSTS = ("localhost", "127.0.0.1")
+    CSRF_TRUSTED_ORIGINS = ("http://localhost", "http://127.0.0.1")
 else:
     ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
     CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
@@ -51,7 +51,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.admindocs",
+
     # Installed
+    "django_minio_backend.apps.DjangoMinioBackendConfig",
     "encrypted_model_fields",
     "django_celery_results",
     "crispy_bootstrap5",
@@ -62,6 +64,7 @@ INSTALLED_APPS = [
     "reversion",
     "formtools",
     "tinymce",
+
     # Internal
     "cms",
     "users",
@@ -165,6 +168,74 @@ DJANGO_SUPERUSER_PASSWORD = os.environ.get("DJANGO_SUPERUSER_PASSWORD")
 DJANGO_SUPERUSER_USERNAME = os.environ.get("DJANGO_SUPERUSER_USERNAME")
 DJANGO_SUPERUSER_EMAIL = os.environ.get("DJANGO_SUPERUSER_EMAIL")
 
+# Minio
+# Storages definition (from django 4.2), for static and media files
+# Configured for Minio backend, but also configurable for AWS S3
+MINIO_ENDPOINT_URL = os.environ["MINIO_ENDPOINT_URL"]
+MINIO_PUBLIC_URL = os.environ["MINIO_PUBLIC_URL"]
+
+MINIO_ACCESS_KEY = os.environ["MINIO_ROOT_USER"]
+MINIO_SECRET_KEY = os.environ["MINIO_ROOT_PASSWORD"]
+
+MINIO_REGION = os.environ["MINIO_REGION"]
+
+MINIO_DEFAULT_BUCKET = os.environ["MINIO_DEFAULT_BUCKET"]
+MINIO_STATIC_BUCKET = os.environ["MINIO_STATIC_BUCKET"]
+
+def strip_scheme(url: str) -> str:
+    return url.replace("http://", "").replace("https://", "").rstrip("/")
+
+
+MINIO_ENDPOINT = strip_scheme(MINIO_ENDPOINT_URL)
+MINIO_EXTERNAL_ENDPOINT = strip_scheme(MINIO_PUBLIC_URL)
+
+STORAGES = {
+    "staticfiles": {  # STATIC -> MinIO
+        "BACKEND": "django_minio_backend.models.MinioBackendStatic",
+        "OPTIONS": {
+            "MINIO_ENDPOINT": MINIO_ENDPOINT,
+            "MINIO_ACCESS_KEY": MINIO_ACCESS_KEY,
+            "MINIO_SECRET_KEY": MINIO_SECRET_KEY,
+            "MINIO_USE_HTTPS": not DEBUG,
+            "MINIO_REGION": MINIO_REGION,
+            "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),
+            "MINIO_CONSISTENCY_CHECK_ON_START": True,
+            "MINIO_STATIC_FILES_BUCKET": MINIO_STATIC_BUCKET,
+        },
+    },
+
+    "default": {  # MEDIA -> MinIO
+        "BACKEND": "django_minio_backend.models.MinioBackend",
+        "OPTIONS": {
+            "MINIO_ENDPOINT": MINIO_ENDPOINT,
+            "MINIO_EXTERNAL_ENDPOINT": MINIO_EXTERNAL_ENDPOINT,
+            "MINIO_EXTERNAL_ENDPOINT_USE_HTTPS": not DEBUG,
+            "MINIO_ACCESS_KEY": MINIO_ACCESS_KEY,
+            "MINIO_SECRET_KEY": MINIO_SECRET_KEY,
+            "MINIO_USE_HTTPS": not DEBUG,
+            "MINIO_REGION": MINIO_REGION,
+            "MINIO_PRIVATE_BUCKETS": [MINIO_DEFAULT_BUCKET],
+            "MINIO_PUBLIC_BUCKETS": [MINIO_STATIC_BUCKET],
+            "MINIO_DEFAULT_BUCKET": MINIO_DEFAULT_BUCKET,
+            "MINIO_STATIC_FILES_BUCKET": MINIO_STATIC_BUCKET,
+            "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),
+            "MINIO_CONSISTENCY_CHECK_ON_START": False,
+            "MINIO_POLICY_HOOKS": [],
+            "MINIO_BUCKET_CHECK_ON_SAVE": False,
+
+            # Multipart
+            "MINIO_MULTIPART_UPLOAD": False,
+            "MINIO_MULTIPART_THRESHOLD": 100 * 1024 * 1024,
+            "MINIO_MULTIPART_PART_SIZE": 100 * 1024 * 1024,
+
+            # URL caching
+            "MINIO_URL_CACHING_ENABLED": True,
+            "MINIO_URL_CACHE_TIMEOUT": 60 * 60 * 8,
+            "MINIO_URL_CACHE_PREFIX": "minio_url_",
+        },
+    },
+}
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 STATICFILES_DIRS = [
@@ -172,20 +243,11 @@ STATICFILES_DIRS = [
     ("images", os.path.join(BASE_DIR, "assets", "images")),
 ]
 
-STATIC_URL = "/static/"
-STATIC_ROOT = "/var/www/staticfiles/"
-
-if DEBUG:
-    STATIC_ROOT = os.path.join(BASE_DIR, "static")
-
-
 # Media files
 # https://docs.djangoproject.com/en/5.2/topics/files/
-MEDIA_URL = "/data/"
-MEDIA_ROOT = "/opt/mediafiles/"
+MEDIA_URL = f"{MINIO_PUBLIC_URL}/{MINIO_DEFAULT_BUCKET}/"
+STATIC_URL = f"{MINIO_PUBLIC_URL}/{MINIO_STATIC_BUCKET}/"
 
-if DEBUG:
-    MEDIA_ROOT = os.path.join(BASE_DIR, "data")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
