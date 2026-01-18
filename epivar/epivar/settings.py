@@ -36,10 +36,23 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 if DEBUG:
     ALLOWED_HOSTS = ("localhost", "127.0.0.1")
-    CSRF_TRUSTED_ORIGINS = ("http://localhost", "http://127.0.0.1")
+    CSRF_TRUSTED_ORIGINS = ("http://localhost:8081", "http://127.0.0.1:8081")
 else:
     ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
     CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+
+
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = False
+
 
 # Application definition
 INSTALLED_APPS = [
@@ -171,70 +184,65 @@ DJANGO_SUPERUSER_EMAIL = os.environ.get("DJANGO_SUPERUSER_EMAIL")
 # Minio
 # Storages definition (from django 4.2), for static and media files
 # Configured for Minio backend, but also configurable for AWS S3
-MINIO_ENDPOINT_URL = os.environ["MINIO_ENDPOINT_URL"]
-MINIO_PUBLIC_URL = os.environ["MINIO_PUBLIC_URL"]
-
-MINIO_ACCESS_KEY = os.environ["MINIO_ROOT_USER"]
-MINIO_SECRET_KEY = os.environ["MINIO_ROOT_PASSWORD"]
-
-MINIO_REGION = os.environ["MINIO_REGION"]
-
-MINIO_DEFAULT_BUCKET = os.environ["MINIO_DEFAULT_BUCKET"]
-MINIO_STATIC_BUCKET = os.environ["MINIO_STATIC_BUCKET"]
 
 def strip_scheme(url: str) -> str:
     return url.replace("http://", "").replace("https://", "").rstrip("/")
 
 
-MINIO_ENDPOINT = strip_scheme(MINIO_ENDPOINT_URL)
-MINIO_EXTERNAL_ENDPOINT = strip_scheme(MINIO_PUBLIC_URL)
+MINIO_ENDPOINT_URL = os.environ["MINIO_ENDPOINT_URL"]      # internal, e.g. http://minio:9000
+MINIO_PUBLIC_URL = os.environ["MINIO_PUBLIC_URL"]          # public, e.g. http://s3.localhost:8081
+
+MINIO_ENDPOINT = strip_scheme(MINIO_ENDPOINT_URL)          # -> minio:9000
+MINIO_EXTERNAL_ENDPOINT = strip_scheme(MINIO_PUBLIC_URL)   # -> s3.localhost:8081
+
+MINIO_EXTERNAL_ENDPOINT_USE_HTTPS = MINIO_PUBLIC_URL.startswith("https://")
+MINIO_USE_HTTPS = MINIO_ENDPOINT_URL.startswith("https://")
+
+MINIO_ACCESS_KEY = os.environ["MINIO_ROOT_USER"]
+MINIO_SECRET_KEY = os.environ["MINIO_ROOT_PASSWORD"]
+
+MINIO_REGION = os.environ["MINIO_REGION"]
+MINIO_DEFAULT_BUCKET = os.environ["MINIO_DEFAULT_BUCKET"]
+MINIO_STATIC_BUCKET = os.environ["MINIO_STATIC_BUCKET"]
+
 
 STORAGES = {
-    "staticfiles": {  # STATIC -> MinIO
+    "staticfiles": {
         "BACKEND": "django_minio_backend.models.MinioBackendStatic",
         "OPTIONS": {
             "MINIO_ENDPOINT": MINIO_ENDPOINT,
+            "MINIO_EXTERNAL_ENDPOINT": MINIO_EXTERNAL_ENDPOINT,
+            "MINIO_EXTERNAL_ENDPOINT_USE_HTTPS": MINIO_EXTERNAL_ENDPOINT_USE_HTTPS,
             "MINIO_ACCESS_KEY": MINIO_ACCESS_KEY,
             "MINIO_SECRET_KEY": MINIO_SECRET_KEY,
-            "MINIO_USE_HTTPS": not DEBUG,
+            "MINIO_USE_HTTPS": MINIO_USE_HTTPS,
             "MINIO_REGION": MINIO_REGION,
             "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),
             "MINIO_CONSISTENCY_CHECK_ON_START": True,
             "MINIO_STATIC_FILES_BUCKET": MINIO_STATIC_BUCKET,
         },
     },
-
-    "default": {  # MEDIA -> MinIO
+    "default": {
         "BACKEND": "django_minio_backend.models.MinioBackend",
         "OPTIONS": {
             "MINIO_ENDPOINT": MINIO_ENDPOINT,
             "MINIO_EXTERNAL_ENDPOINT": MINIO_EXTERNAL_ENDPOINT,
-            "MINIO_EXTERNAL_ENDPOINT_USE_HTTPS": not DEBUG,
+            "MINIO_EXTERNAL_ENDPOINT_USE_HTTPS": MINIO_EXTERNAL_ENDPOINT_USE_HTTPS,
             "MINIO_ACCESS_KEY": MINIO_ACCESS_KEY,
             "MINIO_SECRET_KEY": MINIO_SECRET_KEY,
-            "MINIO_USE_HTTPS": not DEBUG,
+            "MINIO_USE_HTTPS": MINIO_USE_HTTPS,
             "MINIO_REGION": MINIO_REGION,
             "MINIO_PRIVATE_BUCKETS": [MINIO_DEFAULT_BUCKET],
             "MINIO_PUBLIC_BUCKETS": [MINIO_STATIC_BUCKET],
-            "MINIO_DEFAULT_BUCKET": MINIO_DEFAULT_BUCKET,
-            "MINIO_STATIC_FILES_BUCKET": MINIO_STATIC_BUCKET,
             "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),
             "MINIO_CONSISTENCY_CHECK_ON_START": False,
-            "MINIO_POLICY_HOOKS": [],
+            "MINIO_DEFAULT_BUCKET": MINIO_DEFAULT_BUCKET,
+            "MINIO_STATIC_FILES_BUCKET": MINIO_STATIC_BUCKET,
             "MINIO_BUCKET_CHECK_ON_SAVE": False,
-
-            # Multipart
-            "MINIO_MULTIPART_UPLOAD": False,
-            "MINIO_MULTIPART_THRESHOLD": 100 * 1024 * 1024,
-            "MINIO_MULTIPART_PART_SIZE": 100 * 1024 * 1024,
-
-            # URL caching
-            "MINIO_URL_CACHING_ENABLED": True,
-            "MINIO_URL_CACHE_TIMEOUT": 60 * 60 * 8,
-            "MINIO_URL_CACHE_PREFIX": "minio_url_",
         },
     },
 }
+print(STORAGES)
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -245,9 +253,7 @@ STATICFILES_DIRS = [
 
 # Media files
 # https://docs.djangoproject.com/en/5.2/topics/files/
-STATIC_URL = "/static/"  # nginx -> minio
-MEDIA_URL = "/data/"  # nginx -> minio
-
+STATIC_URL = "/static/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -259,7 +265,8 @@ CELERY_RESULT_BACKEND = "django-db"
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = os.getenv("TZ")
+CELERY_TIMEZONE = os.getenv("CELERY_TIMEZONE")
+
 CELERY_RESULT_EXTENDED = True
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60

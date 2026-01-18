@@ -5,6 +5,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.files.storage import FileSystemStorage
 
+from epivar.storages import get_private_storage
 from pybedtools import BedTool # noqa
 from liftover import ChainFile as CF # noqa
 
@@ -71,7 +72,7 @@ class ReferenceGenome(models.Model):
     annotations_file = models.FileField(
         upload_to=upload_annotation_file,
         validators=[test_annotation_file],
-        storage=overwrite_storage,
+        storage=get_private_storage,  # TODO for all file fields
     )
     annotations_file_checksum = models.CharField(blank=True, null=True, editable=True)
 
